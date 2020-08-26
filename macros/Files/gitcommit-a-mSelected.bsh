@@ -1,0 +1,81 @@
+
+doit() {
+    
+    
+    Selection[] sa;
+    /**
+     removes selected from current buffer
+     @return selected or null if noting selected
+    */
+    String selected() {
+        sa =textArea.getSelection();
+        String retval;
+        if (sa.length > 0) {
+            retval=textArea.getSelectedText();
+            //buffer.remove(sa[0].getStart(),sa[0].getEnd()-sa[0].getStart());
+        }
+        return retval;
+    }
+    void removeSelected() {
+        buffer.remove(sa[0].getStart(),sa[0].getEnd()-sa[0].getStart());
+    }
+    /**
+     commit with from dir of current buffer
+    */
+    gitcommitCurBufDir(String message) { 
+        run() {
+            runCommandInConsole(view,"System","# waiting 2sec.");
+            Thread.currentThread().sleep(2000);
+            File file = new File(buffer.getPath().replaceAll("/[^/]+$","/"));
+            String[] cmds = {"git","commit","-a","-m",message};
+            Process proc = Runtime.getRuntime().exec(cmds,null,file);
+            BufferedReader br = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            while ((line = br.readLine()) != null) {
+                runCommandInConsole(view,"System","# "+line);
+            }
+            br.close();
+        }
+        return this;
+    }
+    
+    /**
+     @return true if current or above dir af current buffer contains a folder named .git
+    */
+    boolean isGitSynced() {
+        String dir = buffer.getPath()+"/"; //.replaceAll("/[^/]+$","/")+"skip/";
+        if (dir.substring(0,6).equals("ftp://")) 
+            return false;
+        do {
+            dir = dir.replaceAll("/[^/]+/$","/");
+            File dotgit = new File(dir+".git");
+            if (dotgit.exists() && dotgit.isDirectory()) {
+                return true;
+            }
+        } while(dir.length() > 1);
+        return false;
+    }
+    
+    boolean likeGitCommitMess(String mes) {
+        return mes.matches(":[\\w ]+") && mes.length() < 40;
+    }
+    
+    String message = selected();
+    boolean gitSyncedEnable=jEdit.getBooleanProperty("options.macros.Files.gitCommitEnabled",false);
+    if (gitSyncedEnable==false)  
+        view.getStatus().setMessage("gitsynced is disabled"); 
+    if (gitSyncedEnable == true && message != null && isGitSynced()) {
+        if (!likeGitCommitMess(message)) {
+            view.getStatus().setMessage("not a git commit message");
+            buffer.save(view,null);
+        } else {
+            removeSelected();
+            buffer.save(view,null);
+            new Thread(gitcommitCurBufDir(message)).start();
+        }
+    } else
+        buffer.save(view,null);
+    
+}
+doit();
+
+

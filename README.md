@@ -56,7 +56,7 @@ The types of actions is, dependt of suffix of current buffer file name. It is ea
 ## top 5 used macroes
 
 |cyberkiss      |context menu
-|---
+|---|---
 |actionsdialog  |s+backspace
 |cd             |c+enter+cd 
 |scrathpad      |a+s

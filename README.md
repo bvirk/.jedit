@@ -53,7 +53,7 @@ The types of actions is, dependt of suffix of current buffer file name. It is ea
 - run current buffer as BeanShell script
 
 
-## top 5 used macroes
+## top 5 used macros 
 
 |name           |shortcut key
 |---            |---

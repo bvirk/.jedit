@@ -70,7 +70,7 @@ doit() {
         } else {
             removeSelected();
             buffer.save(view,null);
-            new Thread(gitcommitCurBufDir(message)).start();
+            new Thread(gitcommitCurBufDir(message.substring(1))).start();
         }
     } else
         buffer.save(view,null);

@@ -1,10 +1,11 @@
 ## Macros and startup
 
-To some varied extension, the macros and start function are documented in source
+To some varied extension, the macros and start functions are documented in source.
+
+A group of startup functions, most notably the function p(); is dependt of plugin _Console_
 
 
 ## Brief introduction to selected macroes
-
 
 ### Macro startup
 Macro startup deals with BeanShell global methods - those which litteral source is placed in $JEDIT\_SETTINGS/startup. It offers:
@@ -50,3 +51,18 @@ The types of actions is, dependt of suffix of current buffer file name. It is ea
 - runs extern interpreter (eg. node for .js files)
 - calls methods in plugins (eg. set printUrgency of some plugins debugging utility)
 - run current buffer as BeanShell script
+
+
+## top 5 used macroes
+
+|cyberkiss      |context menu
+|---
+|actionsdialog  |s+backspace
+|cd             |c+enter+cd 
+|scrathpad      |a+s
+|startup        |a+less
+
+## top used startup function
+
+|p();
+|---

@@ -23,7 +23,7 @@
 ### After unifying with this repo
 
 1. If jdk/jre newer than java8 is installed, java 8's rt.jar has to be placed somewhere.
-2. check properties list in startup/initialize.bsh and run macro [Interface/flushGlobal_Namespaced]() after editting:
+2. check properties list in startup/initialize.bsh and run macro Interface/flushGlobal_Namespaced after editting:
 	- placement of jars
 	- browser
 	- drypet.server for macro drypetDialog

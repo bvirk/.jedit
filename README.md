@@ -3,7 +3,7 @@
 
 ##### Rules of this info:
 
-- \<Settings Directory\> is implied, when mentioning files names directories without paths. 
+- \<Settings Directory\> is implied, when mentioning files names without paths. 
 
 ### if installed without java as OS package - ie. as Oracle tar.gz unpacked in /opt
 - run java -jar jedit5.5.0install.jar as root having set JAVA_HOME and having java's bin in PATH

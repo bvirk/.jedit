@@ -1,6 +1,7 @@
 ## todo adviseses after new install of jEdit
 
-######rules of this info:
+
+#####rules of this info:
 
 - \<Settings Directory\> is implied, when mentioning files names directories without paths. 
 
@@ -32,6 +33,7 @@
 	- command bar hints listed by macro Misc/listMemorableActionBarHits
 6. Initial settings
 7. Macro drypetDialog dependencies
+8. Edit mode for php
 			
 ###### settings to initial visit
 
@@ -68,17 +70,8 @@ testArea
 	property drypet.serverurl in startup/initialize.bsh
 	on windows [curl](https://curl.se/windows/) might be needed.
 		
+##### php Edit mode, make keyword addition possible.
 
-	
-	
-	
-	
-### textArea lagging - not testet but possible workarounds
-	One FAQ tip: handy shortcut to  view.splitVertically();view.unsplitCurrent(); 
-	global options -> appearance -> experimental options
-	in linux settings: -Dawt.useSystemAAFontSettings=on -Dswing.aatext=true - does antialiasing have a resource prize  
-
-	
-About
-
-jEdit macros and startup 
+- copy from jEditHomeDir/modes to modes
+	- php.xml
+	- catalog - and remove any \<MODE\> tag besides that for php

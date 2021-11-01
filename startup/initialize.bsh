@@ -1,0 +1,92 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: 
+The folding style is important for lookup facility of macro startup */ 
+ 
+//{{{void intializeProperties()
+/**
+ This file, beeing part of 
+    - startup files
+    - macros
+ 
+ Sets properies that must exists for some macros and startup functions.  
+ By running below intializeProperties() on startup, it is ensured that even a
+ first time jEdit running gets these properties.
+ **/
+void intializeProperties() {
+	int forLeave = OperatingSystem.isWindows() ? 1 : 2;
+	for (String[] keysets : new String[][] {
+		 
+		 { // COMMON - index 0
+		  "drypet.message={0}"
+		 ,"drypet.title=drypet input"
+		 ,"drypet.serverurl=http://drypet"
+		 
+		 },
+		{ // NON WINDOWS - index 1
+		 "cyberkiss.browser=firefox"
+		,"cyberkiss.jarfile1=/opt/jdk1.8.0_202/jre/lib/rt.jar"
+		,"cyberkiss.jarfile2=/opt/jdk1.8.0_202/jre/lib/ext/nashorn.jar"
+		,"cyberkiss.jarfile3=/usr/local/share/jEdit/5.5.0/jedit.jar"
+		,"cyberkiss.jarfile4=${jEdit.getSettingsDirectory()}/jars/jsoup-1.14.3.jar"
+		,"cyberkiss.apiurl.rt=https://docs.oracle.com/javase/8/docs/api/"
+		,"cyberkiss.apiurl.nashorn=https://docs.oracle.com/javase/8/docs/jdk/api/nashorn/"
+		,"cyberkiss.apiurl.jedit=file:///usr/local/share/jEdit/5.5.0/doc/api/"
+		,"cyberkiss.apiurl.jsoup-1.11.3=https://jsoup.org/apidocs/"
+		},
+		{  // WINDOWS - index 2
+		 "cyberkiss.browser=\"C:/Programmer/MozillaFirefox/firefox.exe\""
+		,"cyberkiss.jarfile1=C:/Programmer/java/jdk1.8.0/jre/lib/rt.jar"
+		,"cyberkiss.jarfile2=C:/Programmer/java/jdk1.8.0/jre/lib/ext/nashorn.jar"
+		,"cyberkiss.jarfile3=c:/programmer/jEdit/jedit.jar"
+		,"cyberkiss.jarfile4=${jEdit.getSettingsDirectory()}/jars/jsoup-1.11.3.jar"
+		,"cyberkiss.apiurl.rt=https://docs.oracle.com/javase/8/docs/api/"
+		,"cyberkiss.apiurl.nashorn=https://docs.oracle.com/javase/8/docs/jdk/api/nashorn/"
+		,"cyberkiss.apiurl.jedit=file:///C:/Programmer/jEdit/doc/api/"
+		,"cyberkiss.apiurl.jsoup-1.11.3=https://jsoup.org/apidocs/"
+		} }) {
+			if (forLeave-- == 0)
+				continue;
+			for (String key: keysets) {
+				String [] kv = key.split("=");
+				jEdit.setProperty(kv[0],kv[1]);
+			}
+		}
+		
+	
+}
+intializeProperties();//}}}
+
+//{{{ List changedShortcutKeys(String origFileName, String diffFileName)
+/**
+ * Lists - added or altered shortcut keys and saves a diff 
+ * between origFileName and "imported_keys.props"
+ * 
+ * example of use:
+ *
+ * p(changedShortcutKeys("jEdit_keys.orig.props","mustBeImportedNotChosen.props"));
+ *
+ * @param origFileName
+ * @param diffFileName
+ * @return List of shortcut keys that have been altered or added 
+ */
+List changedShortcutKeys(String origFileName, String diffFileName) {
+	final String keyMapDir = jEdit.getSettingsDirectory() +"/keymaps/";
+	List l = new ArrayList();
+	Properties impKeys=new Properties();
+	impKeys.load(new FileInputStream(keyMapDir+"imported_keys.props"));
+	Properties orgKeys=new Properties();
+	try {
+		orgKeys.load(new FileInputStream(keyMapDir+origFileName));
+	} catch(Exception e) { p(e.getMessage()); return l; }
+	Properties diff=new Properties();
+	for (s:impKeys.stringPropertyNames()) 
+		if (orgKeys.getProperty(s) == null || !orgKeys.getProperty(s).equals(impKeys.getProperty(s))) {
+			l.add(s+"="+impKeys.getProperty(s)+(orgKeys.getProperty(s) != null ? ", Was: "+orgKeys.getProperty(s): ""));
+			diff.setProperty(s,impKeys.getProperty(s));		
+		}
+	if (diffFileName != null && diffFileName.length() > 0) {
+		Writer w = new OutputStreamWriter(new FileOutputStream(keyMapDir+diffFileName));
+		diff.store(w,"diff of added shorcut keys and original shorcut keys");
+	}
+	return l;
+} //}}}

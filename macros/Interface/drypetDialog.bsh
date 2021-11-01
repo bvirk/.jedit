@@ -1,0 +1,550 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: 
+*/
+
+import org.jsoup.Jsoup;
+buffer.save(view,null,true);
+
+/* *********** global variables *******/
+String DOCROOT; 
+String SERVER;
+final String PAGESSETS = "pagessets/";
+final String COMMANDS = "commands/";
+
+int DOCROOTSTARTPOS;
+int SITEPAGESSTARTPOS;
+
+HashMap ust = new HashMap();
+
+for (Object[] kv : new Object[][] {
+	 {PAGEALONE		=1,"PAGEALONE"} 
+	,{PAGEHAVINGMD	=2,"PAGEHAVINGMD"}
+	,{MDPAGE		=4,"MDPAGE"} 
+	,{COMMAND		=8,"COMMAND"} 
+	,{NOTDRYPET    =16,"NOTDRYPET"} 
+	,{FEJL40	   =32,"FEJL40"}})
+		ust.put(kv[0],kv[1]);
+
+/* *********** COMMAND MENU FUNCTIONS *****************/
+//{{{ ABOUT DOCUMENTATION
+/**
+	page: Current buffer when holding one of
+	- a php class in <DOCROOT>/pagessets/
+	- a md file in <DOCROOT>/pagessets/<folder>/
+		where folder has the same name, lowercased in first letter, as some php class
+		
+	pageset:
+	- union of php class files and belonging md files. Current buffer point 
+	  at a specifik pageset when it hold one of the pagesset's files.
+	  
+	printing:
+	- is outputing text to the plugin console's beanshell shell
+	
+	showing message:
+	- is showing a single line in status bar
+ **///}}}
+
+
+//{{{ void addCommand()
+/**
+Adds command, which action default to print its namespaced class name.
+A command in use, has two snippets:
+	1. A php class in namepace bvirk\commands
+	2. A java 'case' in method command in this file, which invoke it.
+Commands is removed by deleting corresponding php file
+ **/
+void addCommand() {
+	String className = capitalized(GUIUtilities.input(view, "drypet",new String[]{"new command"},""));
+	savePhpIfNotExists(className,"commands", "CommandsBase","CommandsFuncs");
+	view.goToBuffer(jEdit.openFile(view,DOCROOT+COMMANDS+className+".php"));
+}//}}} 
+
+//{{{ void editPage()
+/**
+current buffer aware adding a page or subpage. A subpage has the form in inputbox:
+  page/subpage
+When adding a subpage, page and page/index is automatically made if they didn't existed prior.  
+ **/
+void editPage() {
+	cls("");
+	String pageName = GUIUtilities.input(view, "drypet",new String[]{"new page"},"");
+	int sPos=pageName.indexOf("/");
+	String curBufDirSlash = (bufferUse() < 8 ) && (sPos == -1) ? dirname()+"/" : DOCROOT+PAGESSETS;
+	boolean isMDPage = curBufDirSlash.length()>SITEPAGESSTARTPOS || sPos > 0;
+	String className = sPos > 0 
+		? capitalized(pageName.substring(0,sPos))
+		: isMDPage 
+			? capitalized(dirname().replaceAll("^.+/",""))
+			: capitalized(pageName);
+	String fileToOpen = isMDPage ? curBufDirSlash+pageName+".md" : DOCROOT+PAGESSETS+className+".php";
+	
+	//p("curBufDirSlash "+curBufDirSlash);
+	//p("pageName       "+pageName      );
+	//p("sPos           "+sPos          );
+	//p("className      "+className     );
+	//p("isMDPage       "+isMDPage      );
+	//p("fileToOpen     "+fileToOpen    );
+	
+	if (isMDPage) {
+		if (sPos > 0) {
+			saveMdIfNotExixsting(curBufDirSlash+pageName.substring(0,sPos)+"/index.md");
+		}
+		saveMdIfNotExixsting(curBufDirSlash+pageName+".md");
+	} 
+	savePhpIfNotExists(className,rtrim(PAGESSETS,"/"),"PageAware",null);
+	view.goToBuffer(jEdit.openFile(view,fileToOpen));
+}//}}}
+
+//{{{ void css()
+/**
+Open a page's css file - creating if it don't exists.
+ **/
+void css() {
+	if ((bufferUse()&7) > 0 )
+		view.goToBuffer(jEdit.openFile(view,belongingFile("css")));
+	else
+		statMes("not a page file");
+}//}}}
+
+//{{{ void cssCommon()
+/**
+Open <docroot>/css/common.css
+ **/
+void cssCommon() {
+	view.goToBuffer(jEdit.openFile(view,DOCROOT+"css/common.css"));
+}//}}}
+
+//{{{ void html()
+/**
+Pretty printing html response. Useable for markdown learning too.
+ **/
+void html() {
+	openSource("html");
+}//}}}
+
+//{{{ void js()
+/**
+Open a page's js file - creating if it don't exists.
+ **/
+void js() {
+	if (bufferUse() < 8 ) 
+		view.goToBuffer(jEdit.openFile(view,belongingFile("js")));
+	else
+		statMes("not a page file");
+}//}}}
+
+//{{{ void jsCommon()
+/**
+Open <docroot>/js/common.js
+ **/
+void jsCommon() {
+	view.goToBuffer(jEdit.openFile(view,DOCROOT+"js/common.js"));
+}//}}}
+
+//{{{ void play()
+/**
+Playroom for testing php code
+ **/
+void play() {
+	printCommandOutput(curlCommand("play"));
+}//}}}
+
+//{{{ void rm()
+/**
+Remove whole pageset - in other words a page and all its subpages.
+The pages or one of its subpages must be current buffer, for the invoking the deletion
+For delete just a subpage - remove the file
+ **/
+void rm() {
+	int bUse=bufferUse();
+	if (bUse>4) {
+		statMes("no page");
+		return;
+	}
+	String mes ="Delete\n\n"+ String.join("\n",curlCommand("tree "+pageBaseName()));
+	if (GUIUtilities.confirm(view, "drypet",new String[]{mes},JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE)==2)
+		return;
+	if (bUse >1) {  
+		for(File f: new File(DOCROOT+PAGESSETS+pageBaseName()).listFiles())
+			f.delete();
+		new File(DOCROOT+PAGESSETS+pageBaseName()).delete();
+	}
+	new File(DOCROOT+PAGESSETS+capitalized(pageBaseName())+".php").delete();	
+}//}}}
+
+//{{{ void showLog()
+/**
+print content of file <DOCROOT>/log/logfile or reports it absense
+ **/
+void showLog() {
+	cls("");
+	File lf = new File(DOCROOT+"log/logfile");
+	if (lf.exists())
+		p(String.join("\n",readAllLines(lf.getPath())));
+	else
+		p("The log file "+ lf.getPath() + " don't exists");
+}//}}}
+
+//{{{ void text()
+/**
+Show source of page response, but without pretty printing the html. Use this
+for analizing when it is not html that is produced.
+ **/
+void text() {
+	openSource("text");
+}//}}}
+
+//{{{ void tree()
+/**
+Tree view of pageset or whole site when no page is in context. 
+ **/
+void tree() {
+	printCommandOutput(curlCommand((bufferUse()&7)>0 ? "tree "+ pageBaseName() : "tree"));
+}//}}}
+
+//{{{ void usage()
+/**
+Context of current buffer in drypet use.
+ **/
+void usage() {
+	//cls(0);
+	statMes(usageText(bufferUse()));
+	//bufferUse();
+}//}}}
+
+
+/* *********** UTILITY FUNCTIONS *****************/
+//{{{ int bufferUse()
+/**
+  Current buffer use in drypet relation
+  
+  @return one of PAGEALONE,PAGEHAVINGMD,MDPAGE,COMMAND,NOTDRYPET or FEJL40
+  **/
+int bufferUse() {
+	//p("in bufferuse");
+	String fileN = bufferPath();
+	//p(fileN);
+	//p(fileN.startsWith(DOCROOT));
+	//return;
+	if (!fileN.startsWith(DOCROOT))
+		return NOTDRYPET;
+	if (fileN.startsWith(DOCROOT+"commands/"))
+		return COMMAND;
+	if (fileN.startsWith(DOCROOT+PAGESSETS)) {
+		if (Character.isLowerCase(fileN.charAt(SITEPAGESSTARTPOS)))
+			return MDPAGE;
+		String basebare = pathname(fileN.substring(SITEPAGESSTARTPOS),true);
+		//p(basebare);
+		//p(DOCROOT+PAGESSETS+lcFirst(basebare));
+		return new File(DOCROOT+PAGESSETS+lcFirst(basebare)).exists() 
+			? PAGEHAVINGMD
+			: (asList("PageAware","PageFuncs").contains(basebare)
+				? NOTDRYPET
+				: PAGEALONE);
+	}
+	
+}//}}}
+
+//{{{ String belongingFile(String type)
+/**
+  filename of css or js file
+  @param one of "js" or "css"
+  @return filename of css or js file of current page or pageset
+  **/
+String belongingFile(String type) {
+	return  DOCROOT+type+"/"+pageBaseName()+"."+type;
+}//}}}
+
+//{{{ String defInput(String mes, String defKey, String newValue) 
+/**
+  input from box, with default value from previous input, overideable with new value
+  @param mes states the answer to reply
+  @param defKey is the jEdit property the answer is saved as too. 
+  @param newValue overrides previous property content.
+  @return the reply to the answer
+  **/
+String defInput(String mes, String defKey, String newValue) {
+	String fullDef = "drypet.input."+defKey;
+		if (newValue != null)
+			jEdit.setProperty(fullDef,newValue);
+	String di = GUIUtilities.input(view, "drypet",new String[]{mes},jEdit.getProperty(fullDef,""));
+	if (di != null)
+		jEdit.setProperty(fullDef,di);
+	return di;
+}//}}}
+
+//{{{ boolean hasPHPErrors(List l)
+/**
+  Walks the lines to identify php error, warnings and notices in a simple way
+  Is useable in commands where html is not present
+  @param lines
+  @return true if php error, warning or notice like strings is present.	  
+  **/
+boolean hasPHPErrors(List l) {
+	for (String line : l)
+		if (line.matches("<b>[\\w\\s]+</b>.+"))
+			return true;
+	return false;
+}//}}}
+
+//{{{ void openSource(String langType)
+/**
+  Requests url prints response. Some rudimentary Php Error detection invokes jEdit plugin 
+  ErrorList. Errors inside a html document is not caught.
+  This methos could be improved to better detect php error, warnings and notices.
+  
+  @param langType must be one of "text" or "html". "html" pretty prints.
+  **/
+void openSource(String langType) {
+	XThis errorListCtl = phpToErrorList(); 
+	
+	String pageToReq = pageUrl();
+	if (pageToReq == null) {
+		statMes("no page");
+		return;
+	}
+	List resp = finalLocatedContent(SERVER,"/"+pageToReq);
+	//String resp=String.join("\n",);
+	if (errorListCtl.hasErrors(resp))
+		return;
+	cls("");
+	String respStr=String.join("\n",resp);
+	p(langType.equals("html") ? Jsoup.parse(respStr).html() : respStr);
+	view.goToBuffer(buffer);
+}//}}}
+
+//{{{ String pageBaseName() 
+/**
+  basename of page or one of pages in pageset
+
+  @return what is before first slash in url if any. It is the same as php Classname
+  for page or pageset - but with leading lowercase character.
+  
+  **/
+String pageBaseName() {
+	return dirname(pageUrl());
+}//}}}
+
+//{{{ String pageUrl() 
+/**
+  Url of page or one of pages in pageset. Note the index is removed, because it is 
+  implicit basename for pagesets
+  @return	 
+  **/
+String pageUrl() {
+	if (bufferUse() >4 )
+		return null;
+	return bufferPath()
+		.substring(SITEPAGESSTARTPOS).toLowerCase().replaceAll("\\.php$","")
+		.replaceAll("\\.md$","").replaceAll("/index$","");
+}//}}}
+
+//{{{ String pageRequestInput(String pageOrNull)
+/**
+  *
+  @param pageONull is the default 'answer' to be present in prompt and saved 
+		 in property pageRequest.
+  @return the reply to the answer or null on cancel or when called with null
+  **/
+String pageRequestInput(String pageOrNull) {
+	return defInput("page","pageRequest",pageOrNull);
+}//}}}
+
+//{{{ XThis phpToErrorList()
+/**
+  Object that tricks jEdit ErrorList plugin to inform about php errors in 
+  designated file by running a bash script: lastPhpError. LastPhpError consists
+  of following lines
+	
+	#!/bin/bash
+	phpErrorFile=/tmp/phpError
+	if [ -f "$phpErrorFile" ]; then
+	  cat $phpErrorFile
+	  exit 1
+	fi
+
+  
+  @return object	  
+  **/
+XThis phpToErrorList() {
+	void runconsoleCommand() {
+		new console.Shell.SwitchAction("System").invoke(jEdit.getActiveView());
+		runCommandInConsole(view,"System",osDQuote()+sDir()+System.getProperty("file.separator")+osScriptName("lastPhpError")+osDQuote());
+	}
+boolean hasErrors(List lines) {
+		StringBuilder eLines = new StringBuilder();
+		for (String line : lines)
+			if (line.matches("(Warning|Notice|Fatal error|Parse error):.+"))
+				eLines.append(line+"\n");
+		if (eLines.length() > 0) {
+			toFile(phpErrFile,eLines.toString());
+			runconsoleCommand();
+			return true;
+		}
+		return false;
+	}
+			
+	final String phpErrFile =rtrim(ux(System.getProperty("java.io.tmpdir")),"/")+"/phpError"; 
+	phpErrFileAfn=new File(phpErrFile);
+	if (phpErrFileAfn.exists()) {
+		phpErrFileAfn.delete();
+		//p("deleting  /tmp/phpError");
+		runconsoleCommand();
+	}
+	return this;
+}//}}}
+
+//{{{ void printCommandOutput(List lines)
+/**
+  Print lines being the response of a curl request. Used in commands tree and play.
+  Some error detection.
+  @param lines is response outputted from curl.
+  **/
+void printCommandOutput(List lines) {
+	XThis errorListCtl = phpToErrorList();
+	if (errorListCtl.hasErrors(lines))
+		return;
+	cls("");
+	p(String.join("\n",lines));
+	view.goToBuffer(buffer);
+	
+}//}}}
+
+//{{{ void savePhpIfNotExists(String className, String dir, String baseClassName, String use)
+/**
+  Create classes for new command or page.
+  @param className is the command or page name
+  @param dir is also the namespace  
+  @param baseClassName is base class for a command or page
+  @param use adds a use declaration to a class ( trait)
+ */
+void savePhpIfNotExists(String className, String dir, String baseClassName, String use) {
+	if (className == null)
+		return;
+	//p("save php class: "+className);
+	String fileN = DOCROOT+dir+"/"+className+".php";
+	//p(fileN);
+	String fileContent = 
+		"<?php\nnamespace bvirk\\"+dir+";\n\nclass "
+		+className
+		+" extends "+ baseClassName+" {\n"
+		+ (use != null ? "\tuse "+use+";\n}" : "\n}");
+	//p(fileContent);
+	if (!new File(fileN).exists())
+		toFile(fileN,fileContent);
+}//}}}
+
+//{{{ void saveMdIfNotExixsting(String fileName)
+/**
+ * Create md file in its absence
+ *
+ * @param fileName of possible existing md file in possible existing dir.
+ */
+void saveMdIfNotExixsting(String fileName) {
+	if (new File(fileName).exists())
+		return;
+	File dir= new File(dirname(fileName));
+	if (!dir.exists())
+		dir.mkdir();
+	toFile(fileName,"<?php return [ // >>>\n\t<<<EOMD\npage "+basename(fileName,true)+"\nEOMD];");
+}//}}}
+
+//{{{ String usageText(int num)
+/**
+  Used to shows the drypet use of current buffer.
+  @param statusnumber of current buffer  
+  @return Textual status.	  
+  **/
+String usageText(int statusNumber) {
+	return ust.get(statusNumber);
+}//}}}
+
+
+
+
+/**
+ * Dialog for administation a php microframework called drypet.
+ * Beaupet is php 7.3 framework running under apache.
+ * 
+ * The webserver filesystem must be locally available. 
+ * If the webserver is on another mashine, its filesystem must be mounted 
+ * locally with same path as on the other mashine 
+ *
+ * It depend on startup functions which it is distributed togethet with this macro, 
+ * and thereby depent on Plugins console and errorlist and plugin library jsoup
+ *
+ * textual output is on statusline or console
+ *
+ * it has only been testet with protocol http under Linux
+ *
+ * @param docroot is the FILE IN LOCAL FILESYSTEM that is exately the same as
+   php docroot (in php $_SERVER['DOCUMENT_ROOT'] - that's without trailing slash 
+ * @param server includes protocol - try in browser to verify.
+ */
+void remoteCmdsActionsDialog(String docroot, String server) {
+	void command(String choice) {
+		if (choice.length() > 0)
+			jEdit.setProperty(keyLatestActionLetter,""+choice);
+		
+		switch (arr[jEdit.getIntegerProperty(keyLatestActionLetter)]) {
+		case "add-command" :
+			addCommand(); break;
+		case "edit-page" :
+			editPage(); break;
+		case "css" :
+			css(); break;
+		case "css-common":
+			cssCommon(); break;
+		case "html":
+			html(); break;
+		case "js" :
+			js(); break;
+		case "js-common":
+			jsCommon(); break;
+		case "play":
+			play(); break;
+		case "rm":
+			rm(); break;
+		case "showLog":
+			showLog(); break;
+		case "text":
+			text(); break;
+		case "tree":
+			tree(); break;
+		case "usage":
+			usage(); break;
+		default:
+			statMes(choice+" not implementet yet");
+		}
+		
+	}
+	
+	/* *********** EXECUTTION START *****************/
+
+	DOCROOT = OperatingSystem.isWindows()
+		? capitalized(docroot+"/"): docroot+"/"; 
+	
+	SERVER = server;
+	
+	DOCROOTSTARTPOS =	DOCROOT.length();
+	SITEPAGESSTARTPOS =DOCROOTSTARTPOS+PAGESSETS.length();
+	
+	if (!new File(DOCROOT).exists()) {
+		statMes(DOCROOT+" don't seems existing or mounted");
+		return;
+	}
+	XThis errorListCtl = phpToErrorList();
+	List l = curlCommand("cmds");
+	if (errorListCtl.hasErrors(l))
+		return;
+	String[] arr = l.toArray(new String[0]);
+	Arrays.sort(arr);
+	
+	final String keyLatestActionLetter = "options.actionthatbuffernumber";
+	actionsDialogGUI(this,NumSeq(Arrays.asList(arr),"drypet command",jEdit.getIntegerProperty(keyLatestActionLetter)));
+}
+remoteCmdsActionsDialog(
+	OperatingSystem.isWindows() 
+		? "d:/var/www/domain/drypet"
+		: "/var/www/domain/drypet"
+	,jEdit.getProperty("drypet.serverurl"));

@@ -1,0 +1,116 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: 
+ * The folding style is important for lookup facility of macro startup */ 
+//{{{ List finalLocatedContent(String urlBase, String urlLocation)
+/**
+  Possible redirectioned curl request
+@param urlBase is protocol prefixed domain WITHOUT termination slash
+@param urlLocation is '/' prefixed location
+@return list of lines curl responce
+ **/
+List finalLocatedContent(String urlBase, String urlLocation) {
+	int redirectMaxcount=4;
+	LinkedList ll;
+
+	do {
+		//p("requesting "+urlBase+urlLocation);
+		HashMap respHeaders = new HashMap();
+		ll = stdOut("curl -i -s "+ urlBase+ urlLocation); 
+		int respCode = Integer.parseInt(ll.pop().replaceAll("\\s{2,}"," ").split(" ")[1]);
+		String s="";
+		while ((s=ll.poll()) != null) {
+			if (s.length()==0)
+				break;
+			String[] kv = s.split(":");
+			respHeaders.put(kv[0],kv[1].trim());
+		}
+		urlLocation = respHeaders.get("Location");
+		//p("respondcode: "+respCode+", urlLocation: "+urlLocation);
+		if (respCode != 302 || urlLocation == null)
+			break;
+		if (--redirectMaxcount == 0) {
+			break;
+		}
+	} while (true);
+	return ll;
+}//}}}  
+ 
+//{{{ List stdOut(String cmd)
+/**
+	Retrieving the stdout of a bash command.
+	@return list of lines of the bash command
+ **/
+List stdOut(String cmd) {
+	List lines = new LinkedList();
+	String[] cmds = OperatingSystem.isUnix() 
+		? new String[]{"/bin/bash","-c",cmd}
+		: ( OperatingSystem.isWindows()
+			? new String[]{"cmd.exe","/c",cmd}
+			: new String[]{});
+	if (cmds.length == 0) {
+		stateMes("unsuppored OS");
+		retun lines;
+	}
+	Process proc = Runtime.getRuntime().exec(cmds); 
+	BufferedReader br = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	while ((line = br.readLine()) != null) {
+		lines.add(line);
+	}
+	br.close();
+	int retval;
+	try {
+		proc.waitFor();
+	} catch (InterruptedException e ) {
+		retval=127;
+	}	
+	if (retval == 0)
+		retval = proc.exitValue();
+	if (retval == 127)
+		lines.add("Command not found");
+	return lines;
+
+} //}}}
+
+//{{{ curlCommand(String cmdAndArgs)
+/**
+ Calls theOut which uses curl to get an answer from server. The cmd and possible, space
+ delimited args are translated to url querystring format.
+ @return list of lines of the curl command
+ **/
+List curlCommand(String cmdAndArgs) {
+	final String curlCmd ="curl -s \""+jEdit.getProperty("drypet.serverurl")+"/commands.php"; 
+
+	String parms="";
+	String [] args = cmdAndArgs.replaceAll("\\s{2,}"," ").split(" ");
+	if (args[0].length() == 0)
+		return stdOut(curlCmd+"\"");
+	if (args.length > 1)  {
+		parms="&parms=";
+		for (int ac=1; ac < args.length; ac++)
+			parms += args[ac]+"+";
+		parms = parms.substring(0, (parms.length() - 1));
+	}
+	//p("Sending: "+curlCmd+"?cmd="+args[0]+parms+"\"");
+	return stdOut(curlCmd+"?cmd="+args[0]+parms+"\"");
+}//}}}
+
+//{{{ void callFuncAboveCaretLine()
+/**
+	finds function name in line above caretline, which has the format and
+	start the ine
+	
+	/*** funcname
+	
+	The function i called with caretline content as a string argument
+ **/
+void callFuncAboveCaretLine() {
+	TextArea ta = jEdit.getActiveView().getTextArea();
+	Buffer buffer = jEdit.getActiveView().getBuffer();
+	for (int lineNr=ta.getCaretLine(); lineNr >= 0; lineNr--) {
+		line = buffer.getLineText(lineNr);
+		if (line.matches("/\\*\\*\\*\\s+\\w+")) { 
+			BeanShell.runScript(jEdit.getActiveView(),null,new StringReader(line.replaceAll("[^\\w]+","")+"(\""+buffer.getLineText(ta.getCaretLine())+"\");"),true);
+			break;
+		}
+	}
+}//}}}

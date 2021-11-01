@@ -1,0 +1,19 @@
+cls("");
+
+/*//
+Files/cdCurrent							cdc  CDCurrent
+Files/rmc_Delete_current				rmc  RMCurrent
+Interface/flushGlobal_Namespaced		flu  FLUsh
+Interface/globalNamespacedFunctions		aln  AllNamespaced
+Java/insertDoc							rtd  inseRTDoc
+Java/foldMatchingBracket				gb   GreatBritian
+*///
+
+void listMemorableActionBarsHit() {
+	Properties p = new Properties();
+	p.load(new StringReader(String.join("\n",fileLines(scriptPath,"/\\*//","\\*///"))));
+	for (String k: actionNames("[CEFIJMPT].+"))
+		if (p.containsKey(k))
+			p(k+(new String(new char[40-k.length()]).replace('\0',' '))+     p.get(k));
+}
+listMemorableActionBarsHit();

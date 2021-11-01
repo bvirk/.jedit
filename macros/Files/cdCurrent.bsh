@@ -1,0 +1,16 @@
+/**
+ * Change Console's System current directory to that of current buffer.
+ * Needed for antTask getting the right build.xml, and convenient for some working in plugin console with 
+ * command line tools
+ *
+ */
+String[] cmds = OperatingSystem.isUnix() 
+	? new String[] {"cd "+dirname(buffer.getPath())}
+	: (OperatingSystem.isWindows() 
+		? new String[] {buffer.getPath().substring(0,2),win(dirname(buffer.getPath()),true)}
+		: new String[] {});
+for (String cmd : cmds) {
+	runCommandInConsole(view,"System",cmd);
+	waitForConsole(view);
+}
+view.goToBuffer(buffer);

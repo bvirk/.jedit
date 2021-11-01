@@ -1,0 +1,34 @@
+cls((int)(50*Math.random()));
+
+// move caret around while sinus is running
+XThis sinus() {
+	run() {
+		double d=0;
+		String uTbl =
+		 "\u2680\u2681\u2682\u2683\u2684\u2685\u2686\u2687\u2688\u2689\u268a\u268b\u268c\u268d\u268e\u268f"
+		+"\u2690\u2691\u2692\u2693\u2694\u2695\u2696\u2697\u2698\u2699\u269a\u269b\u269c\u269d\u269e\u269f"
+		+"\u26a0\u26a1\u26a2\u26a3\u26a4\u26a5\u26a6\u26a7\u26a8\u26a9\u26aa\u26ab\u26ac\u26ad\u26ae\u26af"
+		+"\u26b0\u26b1\u26b2\u26b3\u26b4\u26b5\u26b6\u26b7\u26b8\u26b9\u26ba\u26bb\u26bc\u26bd\u26be\u26bf";
+		do {
+			d+=pi/10;
+			
+			int caretPos = textArea.getCaretPosition();
+			byte p = textArea.getText(textArea.getCaretPosition(),1).replace(" ","s").replace("\n","n").replace("\t","t").charAt(0);
+			char ch = uTbl.charAt(p & 63);
+			/* READ HERE ABOUT STOPPING */ 
+			if ( p == 'X')
+				break;
+			char fill = Math.cos(d) > 0 ? ch : ' '; 
+			p(new String(new char[(int)(30+30*Math.sin(d))]).replace('\0',fill)+new String(new char[]{ch}));
+			Thread.currentThread().sleep(10+caretPos/10);
+		} while (true);
+		p("bye");
+	}
+	return this;
+}
+
+if (!scriptPath.equals(buffer.getPath())) {
+	view.goToBuffer(jEdit.openFile(view,jEdit.getSettingsDirectory()+"/macros/Misc/fun.bsh"));
+	p("Please - run me again");
+} else
+	new Thread(sinus()).start();

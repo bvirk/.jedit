@@ -1,69 +1,83 @@
-## Macros and startup
+## todo adviseses after new install of jEdit
 
-To some varied extension, the macros and start functions are documented in source.
+######rules of this info:
+- <Settings Directory> is implied, when mentioning files names directories without paths. 
 
-A group of startup functions, most notably the function p(); is dependt of plugin _Console_
+### if installed without java as OS package - ie. as Oracle tar.gz unpacked in /opt
+- run java -jar jedit5.5.0install.jar as root having set JAVA_HOME and having java's bin in PATH
+- shell script in /usr/local/bin/jedit 
+	- JAVA_HOME="/opt/jdk1.8.0_202"
+	- PATH="$PATH:/opt/jdk1.8.0_202/bin"
+	- JAVA="${JAVA_HOME}/bin/java"
+	- wmctrl -s0
+	- exec "${JAVA}" -Dawt.useSystemAAFontSettings=on -Dswing.aatext=true -jar "/usr/local/share/jEdit/5.5.0/jedit.jar" -reuseview "$@" >/dev/null 2>&1 &
 
+### Before unifying with this repo
 
-## Brief introduction to selected macroes
+1. Copy 'imported_keys.props' to 'jEdit_keys.orig.props' in keymaps/
+2. Install plugins Console and Errorlist
+3. Save [jsoup](https://jsoup.org/packages/jsoup-1.14.3.jar) in jars/
 
-### Macro startup
-Macro startup deals with BeanShell global methods - those which litteral source is placed in $JEDIT\_SETTINGS/startup. It offers:
+### After unifying with this repo
 
-- alphabetic sorted clickable buttonraster for
-	- pasting to carret
-	- _swiching to definition for_
-		- documentation
-		- editing, removal or adding new methods in same startup file
-- _update methods_
+1. If jdk/jre newer than java8 is installed, java 8's rt.jar has to be placed somewhere.
+2. check properties list in startup/initialize.bsh and run macro [Interface/flushGlobal_Namespaced]() after editting:
+	- placement of jars
+	- browser
+	- 
+3. Run macro cyberkiss with current buffer being a .java or .bsh file, and test api help of marked up, or left to caret being, word.
+5. Evaluate usefullness
+	- shorcut keys listed by macro Properties/changedShortcutKeys
+	- command bar hints listed by macro Misc/listMemorableActionBarHits
+6. Initial settings
+7. Macro drypetDialog dependencies
+			
+###### settings to initial visit
 
-### Macro cyberkiss
-The _kisses_ are functionality of some text which result is often viewed in webbrowser. The functionality is chosen by a shortcut for a label in a dialog's list. Following is a list of explained kisses, invokeable with the word left to carret, selected or in clipboard, as documented in macro cyberkiss
+- global option
+	- saving and backups
+		- autosave, frq of autosave, numbers of autosave
+	- encoding
+- plugin console
+	- general	
+		 -show welcome message
+	- errorlist
+		- automatically display on errors
+		- error pattern
+```			
+name
+	php
+Error	
+	^(.+?(?=in\s+/))in\s+([^:]+):(\d+).*
+Warning
+	^(.+?(?=in\s+/))in\s+(.+?(?=\s+on\sline))[^\d]+(\d+).*
+Extra lines
+	[\s\S]+Stack trace([\s\S]+)
+message	
+	$2
+file
+	$3
+line
+	$1
+testArea	
+	Fatal error: Uncaught Error: Call to undefined function ditdatdut() in /var/www/domain/beaupet/commands/Play.php:27
+```			
+		
+##### Macro drypetDialog
+	property drypet.serverurl in startup/initialize.bsh
+	on windows [curl](https://curl.se/windows/) might be needed.
+		
 
-- _import_
-	- insert java import statement of a class given its simpleName
-<br><br>
-- _api-help_
-	- opens javadoc of a class in browser, given the class's simpleName 
-<br><br>	
-- beanshell source
-	- navigate to global Beanshell method definition
-<br><br>
-- java keyword
-	- open web page describing java keyword
-<br><br>
-- duckduckgo
-	- open duckduckgo search result in browse
-<br><br>
-- google
-	- open google search result in browser
 	
-And more ...	
+	
+	
+	
+### textArea lagging - not testet but possible workarounds
+	One FAQ tip: handy shortcut to  view.splitVertically();view.unsplitCurrent(); 
+	global options -> appearance -> experimental options
+	in linux settings: -Dawt.useSystemAAFontSettings=on -Dswing.aatext=true - does antialiasing have a resource prize  
 
-### Macro actionsDialog
-File type context actions dialog that uses same method as macro cyberkiss.
+	
+About
 
-- void actionsDialog(XThis callBack, XThis menuSeq, View view) 
-
-The types of actions is, dependt of suffix of current buffer file name. It is easy configured in top file of macro actionsDialog. Some examples that applies to certain suffixes.
-
-- runs ant target (clean,compile,run,pack to jar,document)
-- runs extern interpreter (eg. node for .js files)
-- calls methods in plugins (eg. set printUrgency of some plugins debugging utility)
-- run current buffer as BeanShell script
-
-
-## top 5 used macros 
-
-|name           |shortcut key
-|---            |---
-|cyberkiss      |context menu
-|actionsdialog  |s+backspace
-|cd             |c+enter+cd 
-|scrathpad      |a+s
-|startup        |a+less
-
-## top used startup function
-
-|p();
-|---
+jEdit macros and startup 

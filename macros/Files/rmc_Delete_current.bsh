@@ -1,0 +1,1 @@
+BeanShell.runScript(view,jEdit.getJEditHome()+"/macros/Files/Delete_Current.bsh",null,true);

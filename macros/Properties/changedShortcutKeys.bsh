@@ -1,0 +1,10 @@
+cls("");
+
+String original="jEdit_keys.orig.props";
+String current="imported_keys.props";
+
+p(changedShortcutKeys(original
+	,inputbox("Name of file to save additions\nin "+current+ "\n"
+		+"from "+original+"\n\n"
+		+"(cancel just list new shortcuts)"
+		,"Keyboard shortcut history","diffkeys.props" )));

@@ -1,0 +1,972 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: 
+The folding style is important for lookup facility of macro startup */ 
+
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.nio.file.Files;
+import java.nio.charset.Charset;
+
+//{{{ Buffer aBuffer()
+/**
+ * @return current buffer of active view 
+ */
+Buffer aBuffer() {
+	return jEdit.getActiveView().getBuffer();
+}//}}}
+
+//{{{ View aView()
+/**
+ * @return active view 
+ */
+View aView() {
+	return jEdit.getActiveView();
+}//}}}
+
+//{{{ EditPane aEditPane()
+/**
+ * @return editpane of active view 
+ */
+EditPane aEditPane() {
+	return jEdit.getActiveView().getEditPane();
+} //}}}
+
+//{{{ TextArea aTextArea()
+/**
+ * @return textarea of editpane of active view 
+ */
+TextArea aTextArea() {
+	return jEdit.getActiveView().getEditPane().getTextArea();
+}//}}}
+
+//{{{ String predefinedVars()
+/**
+ * to quick up the memory being 40 cm in front of the screen 
+ *
+ * @return predefined variables for use beanshell 
+ */
+String qmem40() {
+	return 
+	  "scriptPath"
+	+"\nbuffer=view.getBuffer()"
+	+"\nview=jEdit.getActiveView()"
+	+"\neditPane=view.getEditPane()"
+	+"\ntextArea=editPane.getTextArea()"
+	+"\nwm=view.getDockableWindowManager()";
+}//}}}
+
+//{{{ String lcFirst(Object word)
+/**
+ * lowercase first character of a string.
+ *
+ * @param word gets Lowercase firsted. word shall be of String or StringBuilder or any, 'has substring that returns a toString() able object, type.
+ * @return Lowercased first char string
+ */
+String lcFirst(Object word) {
+    return ""+word.substring(0,1).toLowerCase()+word.substring(1);
+}//}}}
+
+//{{{ String capitalized(String s)
+/**
+ * Capitalize a string. That means make the first character uppercase.
+ *
+ * @param s gets capitalized. s shall be of String or StringBuilder or any, 'has substring that returns a toString() able object, type.
+ * @return capitalized string
+ */
+String capitalized(Object s) {
+return s != null ? ""+s.substring(0,1).toUpperCase()+s.substring(1) : null;
+} //}}}
+
+//{{{ String[] toArray(Object toArrayAble)
+/**
+ * Shortcut for toArrayAble.toArray(String[]), where toArrayAble is a container instance implementing Collection 
+ *  
+ * @param any toArrayAble container eg. ArrayList
+ * @return String[] array
+ */
+String[] toArray(Object toArrayAble) {
+    return toArrayAble.toArray(new String[toArrayAble.size()]);
+} //}}}
+
+//{{{ String[] withInsertion(String[] list, String newCome, int insertIndex)
+/**
+ * Inserts a string in an array of strings
+ *
+ * @param list array of string
+ * @param newCome string to be inserted
+ * @param insertIndex where string is inserted
+ * @return array of strings with the inserted string
+ */
+String[] withInsertion(String[] list, String newCome, int insertIndex) {
+    String [] newList = new String[list.length+1];
+    for (int i,spread; i<=list.length;i++) 
+        newList[i] = i == insertIndex 
+            ? newCome.substring(spread++)
+            : list[i-spread];
+    return newList;
+} //}}}
+
+//{{{ List asList(String i1, ...)
+/**
+ * Beanshells absence of varargs motivated shortcut for Arrays.asList( ...
+ *
+ * @param ix is list items of type String
+ * @return List
+ */
+List asList(String i1) {
+	return Arrays.asList(new String[]{i1});
+}
+List asList(String i1,String i2) {
+	return Arrays.asList(new String[]{i1,i2});
+} 
+List asList(String i1,String i2,String i3) {
+	return Arrays.asList(new String[]{i1,i2,i3});
+} 
+List asList(String i1,String i2,String i3,String i4) {
+	return Arrays.asList(new String[]{i1,i2,i3,i4});
+} 
+List asList(String i1,String i2,String i3,String i4,String i5) {
+	return Arrays.asList(new String[]{i1,i2,i3,i4,i5});
+} 
+List asList(String[] strings) {
+	return Arrays.asList(strings);
+} //}}}
+
+//{{{ List assList(Object i1,Object i2)
+List assList(Object i1,Object i2) {
+	return new ArrayList(Arrays.asList(new Object[]{i1,i2}));
+}//}}}
+
+//{{{ String mEval(String expressionList)
+/**
+ * Convenient avoidance of 'Math' prefixing matematically functions, and build expression as serie af expression of which the value of rightmost 
+ * is returned. An example illustates:
+ *
+ * A spot, with a beam angle of 36 degreese is places 1.3 meter above a table. What is the diameter of the beam at table? 
+ * mEval("angle=36;height=1.3;2*height*tan(pi*angle/2/180)")
+ *
+ * @param semicolon delimited lists of numeric expressions or assigments. Space isn't allowed
+ * @return value of rightmost expression
+ */
+String mEval(String exp) {
+	return ""+BeanShell.eval(jEdit.getActiveView(),BeanShell.getNameSpace(),
+		exp.replaceAll("(tan|cos|sin|sqrt|atan|acos|asin|sqrt|pow|exp|log)\\(","Math.$1(").replaceAll("(?i)PI","Math.PI"));
+} //}}}
+
+//{{{ String dkCapUnCameled(String aTxt)
+/**
+ * Capitalize, decodes camelcase or space and substitute danish letters.
+ * The danish letters is coded by escape substitution using dot
+ *
+ * .AE .OE .AA for   Æ,Ø and Å
+ * .ae .oe .aa for   æ,ø and å   
+ * 
+ * for words, starting with some of above, a coded leading space is coded like a uppercase of above.
+ *
+ * eg. "str.aalendeMed.OElledr.oedOg.AEbler." becomes
+ *
+ * Strålende med ølledrød og æbler.
+ *
+ * @param aTxt with lower camelcase substitution of space between words 
+ * @return Capitalized, un camelcased string 
+ */
+String dkCapUnCameled(String aTxt) {
+    StringBuilder txt= new StringBuilder(aTxt);
+    final String [][] natCodes = {{"Æ","AE"},{"Ø","OE"},{"Å","AA"},{"æ","ae"},{"ø","oe"},{"å","aa"}};   
+    int digInRow;
+    for (int startPos=0; startPos < txt.length()-1; startPos++) {
+        char chr = txt.charAt(startPos);
+        digInRow = Character.isDigit(chr) ? digInRow +1 : (digInRow > 0 ? (Character.isLetter(chr) ? -1 : 0 ) : 0); 
+        if (chr == '.') {
+            for (int i=0; i<6 ;i++)  
+                if (txt.substring(startPos+1,startPos+3).equals(natCodes[i][1])) {
+                    txt.delete(startPos,startPos+3);
+                    txt.insert(startPos,natCodes[i][0]);
+                    startPos--;
+                    break;
+                }
+        } else 
+            if (Character.isUpperCase(chr) || (digInRow == 1 || digInRow == -1)) {
+                txt.insert(startPos,' ');
+                txt.setCharAt(startPos+1,Character.toLowerCase(chr));
+                startPos++;
+            }
+    }
+    return capitalized(txt);
+} //}}}
+
+//{{{ List jars()
+/**
+ * List of jarfiles from properties jEdit "cyberkiss.jarfile\\d"
+ *
+ * @return lidt of jar files 
+ */
+List jars() {
+	List l = matchesjEditProps("cyberkiss.jarfile\\d");
+	String user = System.getProperty("user.home");
+	List jars = new ArrayList();
+	for (String kv : l) {
+		String v=kv.split("=")[1];
+		Pattern pat = Pattern.compile(".*\\{(.+)\\}.+");
+		Matcher m = pat.matcher(v);
+		String curlyRepl = m.find() ?  BeanShell.eval(aView(),BeanShell.getNameSpace(),m.group(1)).replaceAll("\\\\","/") : "";
+		jars.add(v.replaceAll("~",user).replaceAll("\\$\\{(.+)\\}",curlyRepl));
+	}
+	return jars;
+} //}}}
+
+//{{{ List jimportJar(String className,String jarfile)
+/**
+ * Classes with given name in jar file.
+ *
+ * @param className the bare classname as eg. List
+ * @param jarfile to search for class name 
+ * @return list of basename prefixed full package name classes 
+ */
+List jimportJar(String className,String jarfile) {
+	List classes = new ArrayList();
+	if (!new File(jarfile).exists()) {
+		statMes(jarfile+ " not found");
+		return classes;
+	}
+	int scriptIsMissingRetval() {
+		return OperatingSystem.isUnix() ?  127 : 1;
+	}
+	if(OperatingSystem.isUnix() ||OperatingSystem.isWindows() ) {
+		String[] cmds = {"jar","-tf",jarfile};
+		Process proc = Runtime.getRuntime().exec(cmds); 
+		BufferedReader br = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		while ((line = br.readLine()) != null) {
+			if (line.matches(".+/"+className+"\\.class"))
+				classes.add(basename(jarfile,true)+": "+line);
+		}
+		br.close();
+		int retval;
+		try {
+			proc.waitFor();
+		} catch (InterruptedException e ) {
+			retval=scriptMissingRetval();
+		}	
+		if (retval == 0)
+			retval = proc.exitValue();
+		if (retval == scriptIsMissingRetval())
+			classes.add("scriptNotFound: ");
+		return classes;
+	}
+}//}}} 
+
+//{{{ List jimport(String className)
+/**
+ * Lists jars of classes with a give barename 
+ *
+ * @param className
+ * @return 
+ */
+List jimport(String className) {
+	List allClasses = new ArrayList(); 
+	for (String jar : jars())
+		allClasses.addAll(jimportJar(className,jar));
+	return allClasses;
+}//}}}
+
+//{{{ String elSubst(String input,Properties properties) 
+/**
+ * el for the 'JSP Expression Language' - function elSubst replaces ${foo} in "some ${foo} thing" with the value of foo in some properties 
+ * It's a string substitution princip also used in Apache ant build files.
+ * This simple implementation below makes ${}whatever} to ${whatever} without dereferencing to any property value. 
+ *
+ * @param properties used to look values
+ * @param input string
+ * @return String being EL substituted
+ */
+String elSubst(String input,Properties properties) {
+	Pattern pat = Pattern.compile("\\$\\{([^}]+)\\}");
+	Matcher m = pat.matcher(input);
+	while (m.find()) {
+		input = input.substring(0,m.start(1)-2)+ properties.getProperty(m.group(1),"${}"+m.group(1)+"}") +input.substring(m.end(1)+1);
+		m =	pat.matcher(input);
+	}
+	return input.replaceAll("\\$\\{\\}([^}]+)\\}","\\${$1}");
+} //}}}
+
+//{{{ List matchesPropertyKeys(String pattern,Properties prop) 
+/**
+ * regex matches key filtered list of properties key=value strings 
+ *
+ * example: matchesPropertyKeys("user\\.[dhl].+",System.getProperties())
+ *
+ * @param pattern that matches a set of property key
+ * @param properties from which extracting those with common startswith keys
+ * @return list of key=value strings
+ */
+List matchesPropertyKeys(String pattern,Properties prop) {
+	List ar = new ArrayList();
+	for (s:prop.stringPropertyNames())
+		if (s.matches(pattern))
+			ar.add(s+"="+prop.getProperty(s));
+	Collections.sort(ar);
+	return ar;
+} //}}}
+
+//{{{ List matchesjEditProps(String pattern) 
+/**
+ * regex matches key filtered list of jEdit properties key=value strings 
+ *
+ * @param pattern that matches a set of property key
+ * @return list of key=value strings
+ */
+List matchesjEditProps(String pattern) {
+	return matchesPropertyKeys(pattern,jEdit.getProperties());
+} //}}}
+
+//{{{ List matchesSysProps(String pattern)
+/**
+ * regex matches key filtered list of system properties key=value strings 
+ *
+ * @param pattern that matches a set of property key
+ * @return list of key=value strings
+ */
+List matchesSysProps(String pattern) {
+	return matchesPropertyKeys(pattern,System.getProperties());
+} //}}}
+
+//{{{ List matchingGroups(String subject, String regex)
+/**
+ * Memorable composition of extracting matching groups, as usefull in finding 
+ * regular expressions for plugin errorlist.
+ *
+ * Example of use for php, ignoring true categorizing in Errors vs. Warnings.
+ *
+ * String[] subjects = new String[]{
+ * 	"Fatal error: Uncaught Error: Call to undefined function bvirk\\commands\\trut() in /var/www/domain/drypet/commands/Play.php:27\ndit\ndat\ndut"
+ *    ,"Warning: include(notExistingFile): failed to open stream: No such file or directory in /var/www/domain/drypet/commands/Play.php on line 29"};
+ * String[] regexs= new String[]{
+ * 	 "^(.+?(?=in\\s+/))in\\s+([^:]+):(\\d+).*"
+ * 	,"^(.+?(?=in\\s+/))in\\s+(.+?(?=\\s+on\\s+line))[^\\d]+(\\d+).*"};
+ *
+ * for (String s : subjects)
+ *     for (String e : regexs)
+ *         p(matchingGroups(s,e));
+ *
+ * @param subject having patterns to identify
+ * @param regex having the expression that identifies matching groups 
+ * @return List of groups
+ */
+List matchingGroups(String subject, String regex) {
+	List g = new ArrayList();
+	Pattern pat = Pattern.compile(regex);
+	Matcher m = pat.matcher(subject);
+	if(m.find()) 
+		for (i=1; i<=m.groupCount();i++)
+			g.add(m.group(i));
+	return g;
+}//}}}
+
+//{{{ boolean foundStartupFunction(String funcName)
+/**
+ * foundStartupFunction opens file containing startup function and position carret at folding heading
+ * The function is identified by the commentline having the folding start pattern -
+ * if this doesn't match exactly the function isn't found.
+ * buffer gets locked - thus, editing must deal with the inconvenient of unlocking and SOURCE IMMEDIATE! 
+ * using macro startup - thus, without manually saving.
+ *
+ * Resourcing a startup functions reveals the difference between updating and
+ * defining - if the signature of a function is changed, two function exists 
+ * until next time jEdit is started. Just remember to change all places where
+ * function is used! in console use grep -nro in $JEDIT_SETTINGS and other *.bsh places
+ * (unxUtils in path in windows)
+ *
+ * @param funcname without signature (return type, parentheses or arguments) 
+ * @return boolean true if function name is found
+ */
+boolean foundStartupFunction(String funcName) {
+	View view=aView();
+	for (File f : new File(sDir()+"/startup").listFiles())
+		if (String.join(" ",readAllLines(f.getPath())).matches(".+?//\\{\\{\\{ ([\\w\\[\\]]+\\s+?)+"+funcName+"\\(.+")) {
+			if (jEdit.openFile(view, f.getPath()) != null) {
+				Buffer buffer = view.getBuffer();
+				if (!buffer.isLocked())
+					buffer.toggleLocked(view);
+				p(view.getBuffer().getName()); 
+				jEdit.setBooleanProperty("search.hypersearch.toggle",false);
+				jEdit.setBooleanProperty("search.keepDialog.toggle",false);
+				org.gjt.sp.jedit.search.SearchAndReplace sap = new org.gjt.sp.jedit.search.SearchAndReplace(); 
+				sap.setIgnoreCase(false);
+				sap.setRegexp(true);
+				sap.setAutoWrapAround(true);
+				sap.setSearchString("//\\{\\{\\{ ([\\w\\[\\]]+\\s+?)+"+funcName+"\\(.+");
+				sap.find(view);
+			}
+			return true;
+		}
+	return false; 
+} //}}}
+
+//{{{ TreeMap sourcedFuntions()
+/**
+ * List of function made available by running BeanShell.runScript with parameter ownNamespace beeing false as during startup 
+ *
+ * example of use:
+ *
+ *	TreeMap tm = sourcedFuntions();
+ *	for (String k :tm.keySet())
+ *		p(k+tm.get(k));
+ *
+ * @return Treemap which (key,value) = (returntype methodname, ([method parameters,...]))
+ */
+TreeMap sourcedFunctions() {
+	String simpleName(String className) {
+		return className.matches(".+?\\[Ljava.+") 
+			? "String[]" 
+			:className.replaceAll("class ","").replaceAll("(\\w+\\.)+","");
+	}
+	TreeMap methods = new TreeMap();
+	for (org.gjt.sp.jedit.bsh.BshMethod m:BeanShell.getNameSpace().getMethods()) {
+		String parms="";
+		if (m.getParameterTypes().length >0) {
+			String [] parmA = new String[m.getParameterTypes().length];
+			
+			int i=0;
+			for (Class claz: m.getParameterTypes())  {
+				parmA[i++]= (claz==null? "uknown" : claz.getSimpleName());
+			}
+		
+			i=0;
+			for (s: m.getParameterNames())
+				if (null != s && i < parmA.length) {
+					parmA[i]=parmA[i] +" "+s;
+					i++;
+				}
+			parms=String.join(",",parmA);
+		}
+		if (null != m.getReturnType())
+			methods.put(simpleName(""+m.getReturnType())+" "+m.getName(),"("+parms+")");
+	}
+	return methods;
+} //}}}
+
+//{{{ String dateFormat(long unixtime, String format)
+/**
+ * wrapper around java.text.SimpleDateFormat
+ *
+ * @param unixtime milliseconds since the epoch (00:00:00 GMT, January 1, 1970)
+ * @param format of SimpleDateFormat
+ * @return String of date representation.
+ */
+String dateFormat(long unixtime, String format) {
+	return new java.text.SimpleDateFormat(format).format(new Date(unixtime)).toString();
+} //}}}
+
+//{{{ List hasSuffixInOrBelow(String dir,String suffix)
+/**
+ * Get list that list of files in dir or below that has a given extension. 
+ *
+ * @param dir is top dir where files with suffix recides  
+ * @param suffix is the filter that includes files
+ * @return List of File objects
+ */
+List hasSuffixInOrBelow(String dir,String suffix) {
+	List files = new ArrayList();
+	walkFileTree(new File(dir),FileVisitor(files,suffix,"item -> { if (item.getName().endsWith(´.´+arg2)) arg1.add(item); return true; }"));
+	return files;
+} //}}}
+
+//{{{ boolean isNewerOrSolitary(File file,String compareDir, String anotherSuffix)
+/**
+ * isNewerOrSolitary is used for decision for updating or creating a file with same barename as parameter file, but receding
+ * in compareDir and having suffix anotherSuffix
+ *
+ * @param file to compare
+ * @param compareDir of matching file 
+ * @param anotherSuffix than that of file 
+ * @return true if file is newer or there not exists some matching file in compareDir  
+ */
+boolean isNewerOrSolitary(File file,String compareDir, String anotherSuffix) {
+	return isNewerOrSolitary(file,new File(compareDir,file.getName().replaceAll("\\.\\w+$","."+anotherSuffix)));
+} //}}}
+
+//{{{ boolean isNewerOrSolitary(File file,File compareTo)
+
+/**
+ * isNewerOrSolitary is used for decision for updating or creating file compareTo
+ *
+ * @param file to compare
+ * @param compareTo of matching file
+ * @return true if file is newer than compareTo or compareTo don't exists.
+ */
+boolean isNewerOrSolitary(File file,File compareTo) {
+	return !compareTo.exists() || file.lastModified() > compareTo.lastModified();
+} //}}}
+
+//{{{ List externCmdOutput(String[] cmds)
+/**
+ *  Get a list of lines from an extern process
+ *
+ * @param cmds eg. {"sqlite3","/tmp/myDB.sqlite", "select name from persons"}
+ * @return List of lines from extern process
+ */
+List externCmdOutput(String[] cmds) {
+	List lines = new ArrayList();
+	Process proc = Runtime.getRuntime().exec(cmds); 
+	BufferedReader br = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+	while ((line = br.readLine()) != null) 
+		lines.add(line);
+	br.close();
+	return lines;
+} //}}}
+
+//{{{ String atCarretOrSelected(TextArea textArea)
+/**
+ * Gets word or string from textarea
+ * 
+ * @param textarea of activeView
+ * @return selected string, rightmost word to carret or null
+ */
+String atCarretOrSelected(TextArea textArea) {
+	return atCarretOrSelected(textArea,"\\w+\\b");
+} //}}}
+
+//{{{ String atCarretOrSelected(TextArea textArea, String match)
+/**
+ * Gets word or string from textarea
+ * 
+ * @param textarea of activeView
+ * @param match to select eg. one or several words should be returned
+ * @return selected string, rightmost word to carret or null
+ */
+String atCarretOrSelected(TextArea textArea,String match) {
+	String text = textArea.getSelectedText();
+	if (null == text) {
+		int carretPos = textArea.getCaretPosition();
+		textArea.goToEndOfWhiteSpace(true); 
+		text = textArea.getSelectedText();
+		textArea.setCaretPosition( carretPos,true);
+		if (null != text) {
+			Matcher m = Pattern.compile(match).matcher(text);
+			if (m.find()) 
+				text = m.group();
+		}
+	}
+	return text;
+} //}}}
+
+//{{{ String unicodeEscaped(String nonEscaped)
+/**
+ * Convert String to their unicode ecaped representation - it use is to make unambiguous strings to put in code 
+ * that otherwise spooks with a compiler.
+ *
+ * @param nonEscaped is a normal string - eg. "I ♥ jEdit" 
+ * @return a unicode escaped sting - eg. "\u0049\u0020\u2665\u0020\u006a\u0045\u0064\u0069\u0074"
+ */
+String unicodeEscaped(String nonEscaped) {
+	backslashUEscaped4digit(String hex) { 
+		hex = "000"+hex; 
+		return "\\u"+hex.substring(hex.length()-4,hex.length()); 
+	}
+	String result= "";
+	for (int pos=0; pos < nonEscaped.length(); pos++)
+		result +=backslashUEscaped4digit(Integer.toUnsignedString((int)nonEscaped.charAt(pos),16)); 
+	return "\""+result+"\"";
+} //}}}
+
+//{{{ String getClipboard()
+/**
+ * Gets clipboard textual content, if present
+ *
+ * @return String clipbord content or null
+ */
+String getClipboard() {
+	java.awt.datatransfer.Transferable tAble = Toolkit.getDefaultToolkit().getSystemClipboard().getContents( null );
+	import java.awt.datatransfer.DataFlavor;
+	return tAble.isDataFlavorSupported(DataFlavor.stringFlavor)
+		? (String)tAble.getTransferData( DataFlavor.stringFlavor )
+		: null; 
+} //}}}
+
+//{{{ List backWordsOrSelected(boolean reverse)
+/**
+ * Get parameter from current line. In the following the string from start of 
+ * caretline to caret is called toCaretLine
+ *
+ * @param reverse makes it possible 'swallow words' from caret moving towards
+ * start of line. In that way, words at start of line don't disturb - a function
+ * just uses the number of parameters it demands. 
+ * @return List with at least two items. Two main categories:
+ * 1. With selected text
+ * 	Two items - both being the selected text
+ * 
+ * 2. With no text selected
+ * 	  - Words of line, space delimited, becomes items - suitable as reversed.
+ * 	  - Delimiting with more than one space is permitted and only count as one.
+ * 	  - Double quotes surrounded strings counts as one item and inside such 
+ *	    strings no space reduction occurs 
+ * 	  - Single quote is just a character
+ *
+ * @see macro cyberkiss 
+ */
+List backWordsOrSelected(boolean reverse) {
+	return backWordsOrSelected(reverse,null);
+} //}}}
+
+//{{{ List backWordsOrSelected(boolean reverse,String pattern)
+/**
+ * Get parameter from current line. In the following the string from start of 
+ * caretline to caret is called toCaretLine
+ *
+ * @param reverse makes it possible 'swallow words' from caret moving towards
+ * start of line. In that way, words at start of line don't disturb - a function
+ * just uses the number of parameters it demands. 
+ * @param pattern is used for identication of correct syntax so functions not get 
+ * input from lines they shouldn't have being invoked on.
+ * @return List with at least two items. Two main categories:
+ * 1. With selected text
+ * 	Two items - both being the selected text
+ * 
+ * 2. With no text selected
+ * 	Item 0 is toCaretLine
+ * 	Item 1 and futher items depends on result of toCaretLine.matches(pattern)
+ and whether toCaretline is empty
+ * 		false or empty caretLine
+ * 			Item1="" - no futher items
+ * 		true: 
+ * 			- Words of line, space delimited, becomes items - suitable as reversed.
+ * 			- Delimiting with more than one space is permitted and only count as one.
+ * 			- Double quotes surrounded strings counts as one item and inside such 
+ *			  strings no space reduction occurs 
+ * 			- Single quote is just a character
+ *
+ * @see macro cyberkiss 
+ */
+List backWordsOrSelected(boolean reverse,String pattern) {
+	TextArea textArea = aView().getTextArea();
+	String argText = textArea.getSelectedText();
+	List retval;
+	if (null == argText) {
+		int caretLinePos =textArea.getCaretPosition()-textArea.getLineStartOffset(textArea.getCaretLine());
+		argText =textArea.getLineText(textArea.getCaretLine()).substring(0,caretLinePos);
+		
+		if (pattern==null || argText.matches(pattern)) {
+			String line = argText.trim().replace("\t"," ").replaceAll(" +(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"," ");
+			retval = new ArrayList(Arrays.asList(line.split(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")));
+			if (reverse)
+				Collections.reverse(retval);
+		} else
+			retval = new ArrayList(asList(""));
+	} else
+		retval = new ArrayList(asList(argText));
+	retval.add(0,argText);
+	return retval;
+} //}}}
+
+//{{{ String password()
+/**
+ * Calls password(14) with length default to 14
+ *
+ * @return password which length is 14.
+ */
+String password() {
+	password(14,false);
+} //}}}
+
+//{{{ String password(int length, boolean isHex)
+/**
+ * Makes a password, using random ASCII values between and inclusive from 33 to 95 
+ * The password is also copied to clipboard
+ * @param length of password
+ * @param isHex if password should be with heximal digits
+ * @return password
+ */
+String password(int length, boolean isHex) {
+	String pw="";
+	byte[] bytes = new byte[length];
+	new java.security.SecureRandom().nextBytes(bytes);
+	for (int i=0; i<length; i++) {
+		pw += isHex 
+		    ? Integer.toString(bytes[i]+128,16)
+		    : (char)((bytes[i]+128)%93+33);
+	}
+	setClip(pw);
+	return pw.substring(0,length);
+} //}}}
+
+//{{{ String pass32(boolean isHex)
+/**
+ * 32 chacter long password in which timestamp of creation time is mangled in.The time can be resolved using timeOfPass32
+ *
+ * @param ishex decides that that character should belong to 0-9a-f
+ * @return password
+ 
+ for future packing
+
+int base = (255*Math.random()).intValue();
+int sec = (255*Math.random()).intValue();
+int app = base ^ sec;
+
+p(new int[]{ base,sec,app,base ^ app } ); 
+
+ **/
+
+String pass32(boolean isHex) {
+    String hexUnixtime = Long.toString(System.currentTimeMillis()/1000L,16);
+    StringBuilder combined = new StringBuilder();
+    String h32 = password(32,isHex);
+    for (int i=0; i< 8; i++)
+        combined.append(hexUnixtime.substring(i,i+1)).append(h32.substring(4*i+1,4*(i+1)));
+    setClip(combined.toString());
+    return combined.toString();
+} //}}}
+
+//{{{ Date timeOfPass32(String pass) 
+/**
+ * Resolves in mangled timestamp of password
+ *
+ * @param pass is password, which timestamp has to be resolved
+ * @return timestamp as Date object
+ **/
+Date timeOfPass32(String pass) {
+    long l, hVal;
+    for (int i=0; i<8; i++) {
+        hVal = (int)pass.charAt(i*4);
+        l = l*16  + (hVal < 58 ? hVal- 48 : hVal - 87);
+    }
+    return new Date(1000*l);
+} //}}}
+
+//{{{ String base32RndStr(int length)
+/**
+ * base 32 string af random numbers
+ *
+ * @param length of string
+ * @return base 32 string af random numbers
+ **/
+String base32RndStr(int length) {
+    String pw="";
+    byte[] bytes = new byte[length];
+	new java.security.SecureRandom().nextBytes(bytes);
+	for (int i=0; i<length; i++) 
+		pw += Integer.toString(bytes[i]&31,32);
+	setClip(pw);
+	return pw;
+} //}}}
+
+//{{{ setClip(String clip)
+/**
+ * Puts a clip in clipboard
+ *
+ * @param clip to be putted in clipboard
+ */
+void setClip(String clip) {
+	Registers.getRegister('$').setTransferable(new java.awt.datatransfer.StringSelection(clip));
+} //}}}
+
+//{{{ List asciiTable()
+/**
+ * Ascii table
+ *
+ * @return list of lines of table with ascii values from 32-255
+ */
+List asciiTable() {
+	String spaces(int len) {
+		return new String(new char[len]).replace('\0',' ');
+	}
+    List lines = new ArrayList();
+    int spaceLen=2;
+    String line="    ";
+    for (String colHead : new String[]{ "0 ","4 ","8 ","c ","10","14","18","1c"})
+        line += colHead+spaces(spaceLen+2);
+    lines.add(line);
+    int lineLen=32;
+    for (int lineBeg = 32; lineBeg < 255; lineBeg +=lineLen) {
+        line = Integer.toString(lineBeg,16)+"  ";
+        for ( int chr = lineBeg; chr < lineBeg+lineLen; chr++) {
+            line += (char)chr;
+            if (chr % 4 == 3)
+                line += spaces(spaceLen);
+        }
+        lines.add(line.toString());
+    }
+    return lines;
+} //}}}
+
+//{{{ void actionssetsCode(String patt,actionsetsLabel)
+/**
+ * shows jEdit code for action. Use \\$ for finding actions which menu appearance
+ * contains underline shortcut.
+ *
+ * example: builtinCode("reloa\\$d all");
+
+ * to see 
+ *	all actionssets:  actionssetsCode(null,null);
+ * to search 
+ *	for code of labeled action: actionssetsCode("clos\\$e all","Built-in Commands");
+ *
+ * @param patt of action
+ * @param actionsetsLabel of actionsset
+ **/
+void actionssetsCode(String patt,String actionsetsLabel) {
+	for (ActionSet asts:jEdit.getActionSets()) {
+		if (asts.toString().equals(actionsetsLabel)) { //"Built-in Commands"
+			p("ACTIONSETS:"+asts);
+			for (EditAction as: asts.getActions())
+				if (as.getLabel() != null)
+					if (patt==null)
+						p(as.getLabel());
+					else
+						if (Pattern.compile(".*"+patt+".*",Pattern.CASE_INSENSITIVE).matcher(as.getLabel()).matches()) 
+							p(as.getLabel()+": "+as.getCode());
+						
+		} else
+			if (actionsetsLabel == null)
+				p("ACTIONSETS:"+asts);
+		
+	}
+} //}}}
+
+//{{{ String rtrim(String str, String allOf)
+/**
+ * Removes all off trailing charaters from String
+ *
+ * @param str is subject for rtim
+ * @param allOf is a list charaters that repetitative is removed from end of str
+ * @return rtrim'ed String or null or empty string if rtrim was called with that.
+ */
+String rtrim(String str, String allOf) {
+	if (str == null || str.length() == 0)
+		return str;
+	do {
+		boolean someRemoved = false;
+		for (char ch : allOf)
+			if (str.charAt(str.length()-1) == ch) {
+				str = str.substring(0,str.length()-1);
+				someRemoved=true;
+			}
+		if (!someRemoved || str.length() == 0)
+			break;
+	} while (true);
+	return str;
+}
+String rtrim(String str) {
+	return rtrim(str," \t\r\n");
+}//}}}
+
+//{{{ List actionNames(String matchCond, boolean showcode) 
+/**
+Lists action names that matches a condition.
+Example: actionNames("togg.+")
+  @param matchCond that selects the actions which actionName matches for being listed
+  @param showcode too, if true
+  @return List of actionnames
+ **/
+List actionNames(String matchCond, boolean showcode) {
+	List ret = new ArrayList();
+	for (String s : jEdit.getActionNames())
+		if (s.matches(matchCond)) {
+			ret.add(s);
+			if (showcode) 
+				ret.add("\t"+jEdit.getAction(s).getCode().replace("\n","\n\t"));
+		}
+	return ret;
+}
+List actionNames(String matchCond) { return actionNames(matchCond,false); } //}}}
+
+//{{{ List commandoActionNames(String matchCond, boolean showcode) 
+/**
+Lists commando action names that matches a condition.
+Example: actionNames("togg.+")
+  @param matchCond that selects the actions which actionName matches for being listed
+  @param showcode too, if true
+  @return List of actionnames
+ **/
+List commandoActionNames(String matchCond, boolean showcode) {
+	List ret = new ArrayList();
+		for (EditAction edA : console.ConsolePlugin.getCommandoCommands()) {
+			if (edA.toString().matches(matchCond)) {
+				ret.add(edA.toString());
+				if (showcode) 
+					ret.add("\t"+jEdit.getAction(edA.toString()).getCode().replace("\n","\n\t"));
+			}
+		}
+	return ret;
+}
+List commandoActionNames(String matchCond) { return commandoActionNames(matchCond,false); } //}}}
+
+//{{{ void builtinCode(String patt)
+/**
+ * shows jEdit code for action. Use \\$ for finding actions which menu appearance
+ * contains underline shortcut.
+ *
+ * example: builtinCode("reloa\\$d all");
+ *
+ * @param patt to be searched for in an actions label
+ */
+void builtinCode(String patt) {
+	actionssetsCode(patt,"Built-in Commands");
+} //}}}
+
+//{{{ String inputbox(String mes, String title, String def)
+/**
+ * Plain inputbox
+ *
+ * @param mes desciption that forms an assertion in connection to keyed in value, 
+ 	to which 'ok' is true
+ * @param title of the box
+ * @param def prefilled value
+ * @return OK confirmed text entered (incl. empty string) or null
+ */
+String inputbox(String mes, String title, String def) {
+	final String mKey="inputbox";
+	jEdit.setProperty(mKey+".title",title);
+	jEdit.setProperty(mKey+".message","{0}");
+	return GUIUtilities.input(aView(), mKey,new String[]{mes},def);
+}
+String inputbox(String mes, String title) {
+	return inputbox(mes, title,"");
+}
+String inputbox(String mes) {
+	return inputbox(mes,"GUIUtilities Input","");
+}//}}}
+
+//{{{ String now()
+/**
+ * Return current time of day in 24hour hh:mm:ss format
+ *
+ * @return current time of day in 24hour hh:mm:ss format 
+ */
+String now() {
+	return now("H:mm:ss");
+} //}}}
+
+//{{{ String now(String format)
+/**
+ * Returns current timestamp
+ *
+ * @param format of time appearence
+ * @return current formatted timestamp.
+ */
+String now(String format) {
+	return java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern(format)).toString();
+} //}}}
+
+//{{{ void iconifyAfter(int xMillis)
+/**
+ * Iconify jEdit after xMillis milliseconds
+ *
+ * @param xMillis is the sleeptime in milliseconds before jEdit is iconified.
+ */
+void iconifyAfter(int xMillis) {
+    threadObj() {
+        void run() {
+            Thread.currentThread().sleep(xMillis);
+            jEdit.getActiveView().setState(Frame.ICONIFIED);
+        }
+        return this;
+    }
+    new Thread(threadObj()).start();
+} //}}}
+
+//{{{ void pa(Object egg) 
+/**
+ * This, as ... filtered best used, activity log print chicken, is the naken system bootstrap for writting a print utiliy. 
+ */
+public void pa(Object egg) { print("..."+egg); 
+} //}}}

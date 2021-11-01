@@ -1,0 +1,11 @@
+/**
+ * Appends //}}} after matching bracket of first bracket after caret
+ */
+void foldMatchingBracket() { 
+	SearchDialog sd = SearchDialog.getSearchDialog(view); 
+	sd.setSearchString("{",sd.CURRENT_BUFFER);
+	sd.ok();
+	textArea.goToMatchingBracket();
+	buffer.insert(textArea.getCaretPosition(),"//}}}");
+}
+foldMatchingBracket();

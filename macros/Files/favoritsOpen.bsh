@@ -1,0 +1,18 @@
+void favOpenActionsDialog() {
+	void command(String choice) {
+		view.goToBuffer(jEdit.openFile(view,files.get(choice))); 
+	}
+	List l = new ArrayList();
+	HashMap files = new HashMap();
+	for (VFSFile f : FavoritesVFS.getFavorites()) { 
+		String line = f.getPath();
+		String label = basename(line,true);
+		l.add(label);
+		files.put(label,line);
+	}
+	if (l.size() > 0)
+		actionsDialog(this,NumSeq(l,"Favorites"));
+	else
+		p("no favorites found");
+}
+favOpenActionsDialog();

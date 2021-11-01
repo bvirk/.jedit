@@ -1,0 +1,14 @@
+// da-key tip A+LESS
+/**
+ * Saves content of dirty files in startup directory and 
+ * flushes their content in beanshell global namespace context. 
+ **/
+void flushStartups() {
+	saveAllStartupFiles();
+	for (File f: new File(sDir()+"/startup").listFiles())  
+		if (f.getName().indexOf("#") == -1) 
+			BeanShell.runScript(view,f.getPath(),null,false);
+		
+	statMes("Flushed global namespaced functions");
+}
+flushStartups();

@@ -1,0 +1,116 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: 
+ * The folding style is important for lookup facility of macro startup */ 
+
+//{{{ String tabularLines(List stringArraysList, int space)
+/**
+ * Formats data to pure tabular column align text.
+ *
+ * @param stringArraysList List of String[]
+ * @param space between columns
+ * @return String of lines of column aligned text.
+ */
+String tabularLines(List stringArraysList, int space, String delim) {
+	int[] maxColumnWidths = new int[stringArraysList.get(0).length];
+	StringBuilder lines = new StringBuilder();
+	for (String [] items : stringArraysList)
+		for (int i=0; i<items.length;i++)
+			if (maxColumnWidths[i] < items[i].length())
+				maxColumnWidths[i]= items[i].length();
+	for (String [] items : stringArraysList) { 
+		String delimCopy="";
+		for (int i=0; i<items.length;i++) {
+			lines.append(delimCopy).append(items[i]).append(new String(new char[space+maxColumnWidths[i]-items[i].length()]).replace('\0',' '));
+			delimCopy=delim;
+		}
+		lines.append("\n");
+	}
+	return lines.toString();
+} //}}}
+
+//{{{ interface List textAreaBlocksRanges(TextArea textArea, String beforeLinesPattern, String afterLinesPattern)
+/**
+ * Get list of list of line numbers in textArea (current buffer).
+ * Line blocks are surrounded by beforeLinesPattern and afterLinesPattern 
+ *
+ * @param beforeLinesPattern
+ * @param afterLinesPattern
+ * @return list of lists of line numbers in textArea of current buffer surrounded by, exclusive, lines with patterns  
+ */
+List textAreaBlocksRanges(TextArea textArea, String beforeLinesPattern, String afterLinesPattern) {
+	boolean inBlock=false;
+	List range;
+	List ranges=new ArrayList();
+	int lineCount=textArea.getLineCount();
+	for( int line=0; line < lineCount;line++) {
+		String text = textArea.getLineText(line);
+		if (inBlock) {
+			inBlock = !text.matches(afterLinesPattern);
+			if (inBlock)
+				range.add(line);
+			else
+				ranges.add(range);
+		} else {
+			inBlock = text.matches(beforeLinesPattern);
+			if (inBlock)
+				range = new ArrayList();
+		}
+	}
+	return ranges;
+} //}}}
+
+//{{{ interface List dsvLines(String fileName, String table)
+/**
+ * Transforms a block of lines in a file to a list of String[].
+ * The blocks is identified as one, potentially among several, named 'table'
+ * The chosen value (or field) delimiter is part of the pattern that identies the table.  
+ * An example: table foo consists of lines between the, not space prefixed, lines
+ * 		/***,sv,foo
+ * and
+ *		***/
+/** You could say that comma seperated values is ,sv and subsequent separated from the table name with that delimiter. 
+ * Conversion deal with removing text qualifier double quote surroundings and substitude there potential infields 
+ * occurrence as double double quote with single double quote. (the Microsoft invention)
+ * LINESHIFT IN FIELDS is not implemented.
+ *
+ * Empty lines result String [] af length of 1, having a String width a length of 0.
+ *
+ * @param fileName is the file from where the table is read
+ * @param table is the name of table to read
+ * @return List of String[] representing arrays of fields in a list of 'records'
+ */
+List  dsvLines(String fileName, String table) {
+	StringBuffer delim= new StringBuffer();
+	return Beam(Files.lines(new File(fileName).toPath()))
+		.filter(false,delim,"item-> {"+
+			"if ( arg1 == true )"+
+			"    return !item.startsWith(´***/´) ?  true : (arg1=false);"+
+			"if (true == (arg1 = item.matches(´/\\*\\*\\*.sv."+table+"´))) {"+
+			"    arg2.append(item.replaceAll(´^/\\*\\*\\*(.)sv.+´,´$1´));}"+
+			"return false; }")
+		.map(delim,"item-> {"
+			+"String[] items= item.split(arg1.toString()+´(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)´);"
+			+"for(int i=0; i < items.length; i++) "
+			+"    items[i]=items[i].trim().replaceAll(´^\"(.*)\"$´,´$1´).replace(´\"\"´,´\"´);"
+			+"return items; }")
+		.toList();	
+} //}}}
+
+//{{{ interface List  dsvLines(String fileName, String delim)
+/**
+ * As dsvLines(String fileName, String table), but read all lines from file and requires delim being specified.
+ *
+ * @param fileNameis is the file from which all lines are read
+ * @param delim is fiels seperator
+ * @return List of String[] representing arrays of fields in a list of 'records'
+ */
+List  dsvLines(String fileName, String delim) {
+	return Beam(Files.lines(new File(fileName).toPath()))
+		.map(delim,"item-> {"
+			+"String[] items= item.split(arg1 +´(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)´);"
+			+"for(int i=0; i < items.length; i++) "
+			+"    items[i]=items[i].trim().replaceAll(´^\"(.*)\"$´,´$1´).replace(´\"\"´,´\"´);"
+			+"return items; }")
+		.toList();
+} //}}}
+

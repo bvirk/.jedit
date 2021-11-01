@@ -1,0 +1,6 @@
+#!/bin/bash
+phpErrorFile=/tmp/phpError
+if [ -f "$phpErrorFile" ]; then
+	cat $phpErrorFile
+	exit 1
+fi

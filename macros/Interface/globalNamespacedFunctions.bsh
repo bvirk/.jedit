@@ -1,0 +1,70 @@
+/**
+ * $JEDIT_SETTINGS/startup functions displayed in button clickable dialog 
+ *
+ * A click insert the function at carret position, a shift+click opens the file 
+ * containing the function for editing. To prevent unintentional editing, the 
+ * file must be unlocked first.
+ *
+ * It is importent to follow the folding commenting style - se documentation for
+ * startup function foundStartupFunction(funcName).
+ *
+ * After editing a startup file, running macro flushStartups sources the startup functions 
+ * - which also pops up errors reporting for convenient repeating the edit->source 
+ * cycle for getting an, at least, correct beanshell syntax.
+ * 
+ * All altered startupfiles is saved if dirty - no need to save manually. 
+ */
+void functionsDialog()
+{
+	
+	void addButtons() {
+		int col=0;
+		int row = rows;
+		for (String s:sNames.keySet()) {
+			JButton j= new JButton(s);
+			j.setToolTipText(s+sNames.get(s));
+			j.setHorizontalAlignment(SwingConstants.LEFT);
+			j.addActionListener(this);
+			buttoncolumn[col].add(j);
+			if (--row == 0) {
+				col++;
+				row=rows;
+			}
+		}
+	}
+	TreeMap sNames=sourcedFunctions();
+	int cols = 1+(sNames.size()-1)/35;
+	int rows = sNames.size()/cols+ ( sNames.size() % (sNames.size()/cols) > 0 ? 1 : 0);
+	dialog = new JDialog(view,"shift-click for edit"); //, title, false);
+	content = new JPanel(new BorderLayout());
+	dialog.setContentPane(content);
+	JPanel allColumns = new JPanel();
+	allColumns.setLayout(new GridLayout(1,cols));
+	JPanel[] buttoncolumn = new JPanel[cols];
+	for (int i=0; i<cols; i++) {
+		buttoncolumn[i] = new JPanel();
+		buttoncolumn[i].setLayout(new GridLayout(rows,1));
+		allColumns.add(buttoncolumn[i]);
+	}
+	addButtons();
+	content.add(allColumns, "South");
+    dialog.pack();
+	dialog.setLocationRelativeTo(view);
+	dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+	public void actionPerformed(ActionEvent e) {
+		String[] buttonParts = e.getActionCommand().split(" ");
+		fName=buttonParts[buttonParts.length-1];
+		String fArgsList = sNames.get(e.getActionCommand());
+		dialog.dispose();
+		if (e.getModifiers() == 16) {
+			tcp=textArea.getCaretPosition();
+			buffer.insert(tcp,fName+fArgsList);
+			int fLen = fName.length();
+			textArea.setCaretPosition(tcp+fLen+1);
+			textArea.setSelection(new Selection.Range(tcp+fLen+1,tcp+fLen+fArgsList.length()-1));
+		} else
+			foundStartupFunction(fName.replaceAll("\\(.+",""));
+	}
+	dialog.setVisible(true);
+}
+functionsDialog();

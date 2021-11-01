@@ -1,0 +1,335 @@
+// ux chekket
+// key tip: S+F10
+// BROWSER TYPE AND INSTALLATION PLACE DEPENDT -LOOK AT void browseThat(String url)
+import java.util.stream.Collectors;
+/**
+ * Package name importer, Api and startup function help and cyberkisses. Place carret 
+ * in front of, or select word(s) to be used. If carret is after a space clipboard 
+ * is used
+
+ * 
+ * This function and meant to be edited together with presentSelection for sending
+ * stupid requests of, in terms of sending dialog resources, simple art.  
+ */
+void cyberkiss() {
+	String extOrUntitled(String fileName) {
+		String fn = dotExt(fileName);
+		return fn.length() > 0 ? fn : basename(fileName).replaceAll("-\\d+$","");
+	}
+	String text;
+	List words = backWordsOrSelected(true);
+	if (words.get(0).endsWith(" ") || words.get(0).length()==0)
+		text=getClipboard();
+	else
+		text = words.get(1);
+	if (null != text) {
+	    List menuItems = new ArrayList (Arrays.asList(new String[]{
+	    	 "duckduckgo"
+			,"en-da"
+			,"da-en"
+			,"en.wiki"
+			,"da.wiki"
+			,"thesaurus"
+        		    }));
+        switch (extOrUntitled(buffer.getName())) {
+        
+		case "java":
+            menuItems.addAll(asList(
+                 "import"
+                ,"api-help"
+                ,"java keyword"
+                ));
+            break;
+        case "bsh":
+            menuItems.addAll(asList(
+                 "import"
+                ,"api-help"
+                ,"java keyword"
+                ,"eval beanshell"
+                ,"beanshell source"
+                ));
+            break;
+        case "Untitled":
+            menuItems.addAll(asList(
+                 "findvej"
+                ,"findrute"
+                ,"phone"
+                ));
+            break;
+        case "csv":
+            menuItems.addAll(asList(
+                "cvr"));
+            break;
+        case "css":
+            menuItems.addAll(asList(
+                "css"));
+            break;
+        case "php":
+            menuItems.addAll(asList(
+                 "php function"
+                ,"php class"
+             	,"php add keyword"
+                ));
+            break;
+        case "py":
+            menuItems.addAll(asList(
+                "python keyword"
+                ));
+            break;
+        
+        }
+
+	    presentSelection(menuItems,text);
+	}
+}
+
+/**
+ * Pops up actionsDialog, which is a shortcut key prefixed list.
+ *
+ * @param menues list to choose an action item from 
+ * @param kiss paramter to chosen action
+ */
+void presentSelection(List menues, String kiss) {
+	command(String choice) {
+		//p("in switch, choice="+choice);
+	    switch (choice) {
+		    
+			case "import":
+				doImport(kiss);
+				break;
+			case "api-help":
+				apiHelp(kiss);
+				break;
+			case "eval beanshell":
+			    BeanShell.eval(view,BeanShell.getNameSpace(),"p("+kiss+");");
+			    break;
+			case "beanshell source":
+				if (!foundStartupFunction(kiss))
+					statMes(funcName+" ?");
+				//else
+					//p(buffer.getName());
+				break;
+			case "java keyword":
+				url = javaKeywordUrl(kiss);
+				if (url.size() > 1)
+					if (url.size() == 2) 
+						browseThat(url.get(0));
+					else {
+						actionsDialogGUI(this,numSeqSplitLast(url));
+					}
+				else
+					statMes(kiss+" ?" );
+				break;
+			case "python keyword":
+				url = pythonWordUrl(kiss);
+				p("python url="+url);
+				if (url.size() > 1)
+					if (url.size() == 2) 
+						browseThat(url.get(0));
+					else {
+						actionsDialogGUI(this,numSeqSplitLast(url));
+					}
+				else
+					stamMes(kiss+" ?" );
+				break;
+			case "duckduckgo":
+				browseThat("https://duckduckgo.com/?q="+URLEncoder.encode(kiss,"utf-8"));
+				break;
+			case "php function":
+				browseThat("https://www.php.net/manual/en/function."+kiss.replace("_","-")+".php");
+				break;
+			case "css":
+				browseThat("https://developer.mozilla.org/en-US/docs/Web/CSS/"+kiss);
+				break;
+			case "php class":
+			    //browseThat("https://www.php.net/manual/en/class."+kiss.replace("_","-")+".php");
+				browseThat("https://www.php.net/manual/en/class."+kiss); //+".php");
+				break;
+			case "php add keyword":
+				view.goToBuffer(jEdit.openFile(view,"/home/bvirk/.jedit/modes/php.xml"));
+				break;
+			case "findrute":
+				String[] words = kiss.trim().replaceAll(" {2,}"," ").replaceAll(","," ").split(" "); 
+				browseThat("https://www.google.com/maps/dir/"+words[0]+"+"+words[1]+","+words[2]+"/"+words[3]+"+"+words[4]+","+words[5]);
+				break;
+			case "findvej":
+				String[] words = (kiss.trim().replaceAll("  +"," ")+" ").split(" ",3); 
+				browseThat("https://www.google.com/maps/place/"+words[0]+"+"+words[1]+words[2]);
+				break;
+			case "phone":
+				browseThat("https://118.dk/search/go?what="+kiss);
+				break;
+			case "cvr":
+				browseThat("https://datacvr.virk.dk/data/visenhed?enhedstype=virksomhed&id="+kiss+"&soeg="+kiss+"&language=da");
+				break;
+			case "en-da":
+				browseThat("https://en.glosbe.com/en/da/"+URLEncoder.encode(kiss,"utf-8"));
+				break;
+			case "da-en":
+				browseThat("https://da.glosbe.com/da/en/"+URLEncoder.encode(kiss,"utf-8"));
+				break;
+			case "en.wiki":
+				browseThat("https://duckduckgo.com/?q=site%3Aen.wikipedia.org+"+URLEncoder.encode(kiss,"utf-8"));
+				break;
+			case "da.wiki":
+				browseThat("https://duckduckgo.com/?q=site%3Ada.wikipedia.org+"+URLEncoder.encode(kiss,"utf-8"));
+				break;
+			case "thesaurus":
+				browseThat("https://www.thesaurus.com/browse/"+URLEncoder.encode(kiss,"utf-8"));
+				break;
+			default:
+				browseThat(choice);
+		}
+	}
+	actionsDialogGUI(this,NumSeq(menues,kiss));
+}
+
+/**
+ * Alternativ to browser historic
+ *
+ * @param keyword in the java language
+ * @return url descibing the keyword
+ */
+List javaKeywordUrl(String keyword) { 
+	List urls = Arrays.stream(new String[] {
+		 "if=n0/if"
+		,"else=n0/if"
+		,"switch=n0/switch"
+		,"while=n0/while"
+		,"do=n0/while"
+		,"for=n0/for"
+		,"break=n0/branch"
+		,"continue=n0/branch"
+		,"return=n0/branch"
+		,"default=n0/switch"
+		,"case=n0/switch"
+		,"instanceof=n0/op2"
+		,"catch=e0/catch"
+		,"finally=e0/finally"
+		,"throw=e0/throwing"
+		,"try=e0/try"
+		,"assert=https://docs.oracle.com/javase/7/docs/technotes/guides/language/assert"
+		,"new=https://docs.oracle.com/javase/tutorial/java/javaOO/objectcreation"
+		,"enum=http://tutorials.jenkov.com/java/enums"
+		,"enum=https://howtodoinjava.com/java/enum/guide-for-understanding-enum-in-java/"
+		}).filter(Predicate(keyword,"item-> item.startsWith(arg1+´=´)")).map(Mapper(
+			 "item->item.replaceAll(´^\\w+?=´,´´)"
+			+".replaceAll(´^n0/´,´https://docs.oracle.com/javase/tutorial/java/nutsandbolts/´)"
+			+".replaceAll(´^e0/´,´https://docs.oracle.com/javase/tutorial/essential/exceptions/´)"
+			+".replaceAll(´([^/])$´,´$1.html´)"
+			)).collect(Collectors.toList());
+		urls.add(keyword);
+		return urls;
+}
+
+
+List pythonWordUrl(String keyword) { 
+	List urls = Arrays.stream(new String[] {
+		 "if=n0/the-if-statement"
+		,"else=n0/the-if-statement"
+		,"while=n0/the-while-statement"
+		,"for=n0/the-for-loop"
+		,"break=n0/break-statement"
+		}).filter(Predicate(keyword,"item-> item.startsWith(arg1+´=´)")).map(Mapper(
+			 "item->item.replaceAll(´^\\w+?=´,´´)"
+			+".replaceAll(´^n0/´,´https://python.swaroopch.com/control_flow.html#´)"
+			
+			)).collect(Collectors.toList());
+		urls.add(keyword);
+		return urls;
+}
+
+
+numSeqSplitLast(List keyWTrailedUrls) {
+	String keyW = keyWTrailedUrls.remove(keyWTrailedUrls.size()-1);
+	return NumSeq(keyWTrailedUrls,keyW); 
+ }
+
+void browseThat(String url) {
+	Runtime.getRuntime().exec(new String[]{jEdit.getProperty("cyberkiss.browser"),url}); 
+}
+
+String apiUrl(String key) {
+	String scriptIsMissingUrl() {
+		File tmpfileName = File.createTempFile("jimpstat",".html");
+		tmpfileName.deleteOnExit();
+		toFile(tmpfileName.getPath(), 
+		 "<!DOCTYPE html><meta charset=\"utf-8\"><title>Script location status</title><p>"
+		+"Missing cyberkiss.apiurl '" + key + "'</p><p>"
+		+"check initializeProperties() in JEDIT_SETTINGS/startup/initialize.bsh"
+		+ "<br>remember to run macro startup afterwards to make change have effect</p>");
+		
+		return "file://"+(OperatingSystem.isWindows() ? "/" : "")+ux(tmpfileName.getPath());
+	}
+	String v = jEdit.getProperty("cyberkiss.apiurl."+key);
+	return v != null ? v : scriptIsMissingUrl();
+}
+
+
+/**
+ * Insets import declaration.
+ *
+ * NOTE: method jimport has extern dependencies - see its dokumentation
+ *
+ * @param className which full package name import statement is inserted at line 5 in in current buffer
+ * @libray jimport
+ * @libray actionsDialog
+ */
+void doImport(String  className) {
+	final int atLineToInsert=5;
+	void command(jarClass) {
+		String[] packPath = jarClass.split(":");
+		String pacName = packPath[1].replaceAll("/",".").replaceAll("\\.class\\s*$","");
+		if (pacName.length() > 1) {
+			buffer.insert(buffer.getLineEndOffset(atLineToInsert-2),"import "+pacName+";\n");
+			statMes(jarClass.replaceAll("\\.class\\s*$",""));
+		} else
+			statMes("Nothing inserted");
+	}
+	List classes = jimport(className);
+	if (classes.size() > 0 )
+		if (classes.size() > 1)
+			actionsDialogGUI(this, NumSeq(classes,"Classes"));
+		else
+			command(classes.get(0));	
+	else
+		statMes(className+" ?");
+}
+
+void openMdFileInBaseDir(String mdBareFile) {
+	fileVisitor() {
+		boolean continueVisitFile(File f) {
+			if(f.getName().equals(mdBareFile+".md"))
+				pathName = f.getPath();
+			return true;
+		}
+		return this;
+	}
+	String pathName;
+	walkFileTree(new File(mdBaseDir()),fileVisitor(),2);
+	if (null==pathName)
+		statMes(mdBareFile+" ?");
+	else
+		jEdit.openFile(view,pathName);
+}
+
+void apiHelp(String word) {
+	
+	void command(jarClass) {
+		String[] packPath = jarClass.split(":");
+		browseThat(apiUrl(packPath[0])+packPath[1].trim().replaceAll("\\.class\\s*$",".html"));
+	} 
+	List classes = jimport(word);
+	if (classes.size() > 0 )
+		if (classes.size() > 1) 
+			actionsDialogGUI(this, NumSeq(classes,"Classes"));
+		else
+			command(classes.get(0));
+	else {
+		statMes(word+" ?");
+	}
+}
+
+cyberkiss();
+	
+	

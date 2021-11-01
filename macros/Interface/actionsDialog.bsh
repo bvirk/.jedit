@@ -1,0 +1,134 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: */ 
+
+/*//
+*;<html><br></html>
+bsh;<html><b><u>Beanshell</u></b></html>
+bsh;_execute          									=runBsh
+bsh;<html><br></html>
+java.xml.props;<html><b><u>Ant_Targets</u></b></html>
+java.xml.props;clea_n									=runAnt
+java.xml.props;_compile									=runAnt
+java.xml.props;_jar										=runAnt
+java.xml.props;_run										=runAnt
+java.xml.props;_doc										=runAnt
+js;<html><b><u>Node_js<u></b></html>
+js;r_un=runNode
+c.cpp;<html><b><u>Make<u></b></html>
+c.cpp;r_un												=runMake
+py;<html><b><u>Python<u></b></html>
+py;p_ython												=runPython
+php;<html><b><u>Php<u></b></html>
+php;p_hp												=runPhp
+php;re_motephp											=runRemotePhp
+bsh.php.md.css;dry_pet									=drypetDialog
+*///
+
+//{{{ void actionsDialog(String suffix)
+/**
+ * File associated actions dialog with invocation by shortcut key.
+ * 
+ * The shortcut key is remembered and might on next opening of the dialog be
+ * default action which can be chosen by return key og space key.
+ * 
+ * The properties list above desides the dialog labels. Labels are shown if current
+ * buffer's file suffix is one of the dot delimited words before the ';' char.
+ * String '*' means any suffix. Menu labels are what follow ';' in what becomes property keys
+ * 
+ * Command(s) are grouped with a headerline - when disabling all commands in group,
+ * the header should also be disabled. Disabling, without removing, is done the 
+ * property files way of '#' as first character on a line.
+ * Leading underscore in label desides key for invoking the action.
+ * 
+ * Only one global key is persistent, which means that every action must own a key.
+ *
+ * @param suffix selects corresponding actions
+ */
+void actionsDialog(String suffix) {
+	void command(String ch) {
+		if (ch.length() > 0)
+			jEdit.setProperty(keyLatestActionLetter,""+ch);
+	switch (cmds.get(jEdit.getProperty(keyLatestActionLetter))) {
+			case "runAnt":
+				antTask(parm.get(menuLines.getProperty(keyLatestActionLetter)));
+				break;
+			case "runBsh":
+				Macros.runScript(view,buffer.getPath(),true);
+				view.goToBuffer(buffer);
+				break;
+			case "runNode":
+				runNode();
+				break;
+			case "runPhp":
+				runPhp();
+				break;
+			case "runPython":
+			    String pyScript=buffer.getPath();
+			    runInConsoleSystem("python3 "+pyScript+ " "+jEdit.getProperty("options.python.runargs"),true);
+				break;
+			case "runMake":
+			    runInConsoleSystem("make && make run",true);
+			    break;
+			case "drypetDialog":
+				Macros.runScript(view,jEdit.getSettingsDirectory()+"/macros/Interface/drypetDialog.bsh",true);
+			    break;
+			    
+			default:
+				Macros.message(view,"internal bug in macro actionsDialog: "+cmds.get(menuLines.getProperty(keyLatestActionLetter)));
+		}
+	}
+	XThis MenuesObj(List menues,String sCKeys, int defaultIndex) {
+		int ix;
+		String heading() { return null; }
+		String shCKeys() { return sCKeys; } 
+		String readLabelText() {
+			return ix < menues.size()
+				? menues.get(ix++)
+				: null;
+		}
+		int defIndex() { return defaultIndex; }
+		String menuItem(int index) {
+			return ""+sCKeys.charAt(index);
+		}
+		return this;
+	}
+
+	List suffixSelectedLinesSortedKeys(String suffix) {
+		ArrayList sKeys = new ArrayList();
+		for (s : blockLines.keySet())
+			if (s.matches("\\d{3}(\\w+\\.)*("+suffix+"[\\.;]|\\*;).+"))
+				sKeys.add(s);
+		Collections.sort(sKeys);
+		return sKeys;
+	}
+
+	void buildMenues() {
+		for (String sufSelKey : suffixSelectedLinesSortedKeys(suffix)) {
+			if (blockLines.get(sufSelKey).length()==0)
+				menuItems.add(sufSelKey.replaceAll(".+;(.+)","$1")); 
+			else {
+				menuItems.add(sufSelKey.replaceAll(".+;(\\w*)_(\\w)(.*)","$1<u>$2</u>$3").replaceAll("(.+)","<html>$1</html>"));
+				String sCK = sufSelKey.replaceAll(".*_(\\w).*","$1");
+				sCKeys.append(sCK);
+				parm.put(sCK,sufSelKey.replaceAll(".+;","").replaceAll("_","")); 
+				cmds.put(sCK,blockLines.get(sufSelKey));
+				if (sCK.equals(jEdit.getProperty(keyLatestActionLetter))) 
+					defActionIx = menuItems.size()-1;
+				
+			}
+				
+		}
+	}
+	List menuItems = new ArrayList();
+	StringBuilder sCKeys=new StringBuilder();
+	HashMap cmds = new HashMap();
+	HashMap parm = new HashMap();
+	int defActionIx=-2;
+	final String keyLatestActionLetter = "options.actionthatbuffer";
+	
+	Properties blockLines = new Properties();
+	blockLines.load(new StringReader(String.join("\n",dddPrefixedFileLines(scriptPath,"/\\*//","\\*///"))));
+	buildMenues();
+	actionsDialogGUI(this,MenuesObj(menuItems,sCKeys.toString(),defActionIx));
+}//}}}
+actionsDialog(dotExt(buffer.getName()));

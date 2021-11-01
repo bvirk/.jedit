@@ -1,0 +1,272 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: 
+ * The folding style is important for lookup facility of macro startup */ 
+
+import org.gjt.sp.jedit.bsh.XThis; 
+
+/** 
+ * Printing to dockable window of Beanshell shell of Plugin Console. 
+ */
+
+//{{{JComponent dockableW()
+DockableWindowManager dockableWindowManager;
+/**
+ *	
+ *
+ * @return JComponent console dockableWindow
+ */
+JComponent consoleDW() {
+	final String plName="console"; 
+	if (null==super.dockableWindowManager)
+		super.dockableWindowManager = jEdit.getActiveView().getDockableWindowManager();
+	JComponent dAW = super.dockableWindowManager.getDockableWindow(plName);
+	if (null == dAW) {
+		super.dockableWindowManager.addDockableWindow(plName);
+		dAW = super.dockableWindowManager.getDockableWindow(plName);
+	}
+	return dAW;
+} //}}}
+
+//{{{ void println(Object thing)
+/**
+ *  Print a line on plugin console's beanshell shell
+ *
+ * @param thing to print at a line
+ */ 
+void println(Object thing) {
+	if (null==super.dockableWindowManager)
+		super.dockableWindowManager = jEdit.getActiveView().getDockableWindowManager();
+	while (!(dockableWindowManager.isDockableWindowVisible("console") && consoleDW().getShell().getName().equals("BeanShell"))) {
+		new console.Shell.SwitchAction("BeanShell").invoke(jEdit.getActiveView());
+	}
+	consoleDW().getOutput().print(Color.black,""+thing);
+} //}}}
+
+//{{{ void p(Object thing)
+/**
+ * Print things on plugin console's beanshell shell, showing the decomposition using curly braces
+ *
+ * @param thing to print at a line
+ */ 
+void p(Object thing) {
+	if (thing == null)
+		println("null");
+	else if (thing.getClass().isArray() || thing instanceof AbstractCollection || thing instanceof AbstractMap )
+		p(thing,spacer());
+	else
+		println(thing);
+} //}}}
+
+//{{{ XThis spacer()
+/**
+ * Used in the two p(...) methods to indent content as function a level of recursion  
+ *
+ * @return object with methods for indenting lines
+ */
+XThis spacer() {
+	String apply(String line) {
+		return prefix+line;
+	}
+	String apply(String line, boolean applyAfter) {
+		if (applyAfter) {
+			line  = prefix+line;
+			prefix += "    ";
+		} else 
+			line = (prefix = prefix.substring(4))+line;
+		return line;
+	}
+	String prefix="";
+	return this;
+} //}}}
+
+//{{{ void p(Object thing,Object spacer)
+/**
+ * Print things on plugin console's beanshell shell, showing things decomposition using curly braces
+ * This function is mainly thought of being used by p(thing)
+ *
+ * @param thing to be printed
+ * @param spacer to control indention of recursion
+ */
+void p(Object thing,Object spacer) {
+	if (thing.getClass().isArray() || thing instanceof AbstractCollection ) {
+		println(spacer.apply("{"+thing.getClass().getName(),true));
+		for (Object line : thing)
+			p(line == null ? "null" : line,spacer);
+		println(spacer.apply("}",false));
+	} else {
+		if ( thing instanceof AbstractMap) {
+			println(spacer.apply("{"+thing.getClass().getName(),true));
+			for (Object k :thing.keySet())
+				p(k == null ? "null" : k.toString()+"="+thing.get(k).toString(),spacer);
+			println(spacer.apply("}",false));
+		} else 
+			println(spacer.apply(""+thing));
+	}
+} //}}}
+
+//{{{ void pt(Object thing)
+/**
+ * Print things, timestamp prefixed, on plugin console's beanshell shell
+ *
+ * @param thing to be printet
+ */ 
+void pt(Object thing) {
+	println(java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss,SSS ")).toString()+thing);
+} //}}}
+
+//{{{ void cls() 
+/**
+ * Clears 'the screen' which is plugin console's beanshell shell.
+ */ 
+void cls() { 
+	consoleDW().clear(); 
+} //}}}
+
+//{{{ void cls(heading) 
+/**
+ * Clears 'the screen' which is plugin console's beanshell shell and 'prints' a headline
+ * Often used as cls(0), which is a convenient workaround for timestamp with millisecond resolution. 
+ *
+ * Due to that the thread that repaint content af Jtextarea not get thread of execution before invoked beanshell 
+ * functionality is finished, progress of running might not be visual detectable as latest result. If things have
+ * runned and output 'seems untouched' it is not possible to distinct visual between nothing have runned or invoked
+ * script have runned with same output.
+ * 
+ * A change in headline ensures that things had runned.
+ *
+ * @param thing affect clearing way in one of following ways
+ * - 0 clear screen and print time
+ * - positive integer: print that number of empty lines folowed y a line with time
+ * - negative integer just print time - no clearing
+ * - text clears the screen and print the text
+ */ 
+void cls(Object thing) { 
+	if (thing instanceof Integer) {
+		if (thing == 0)
+			consoleDW().clear();
+		else if (thing >0) 
+			println(new String(new char[(int)thing-1]).replace('\0','\n'));
+		println(java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("K:mm:ss a,SSS ")).toString());
+	} else {
+		consoleDW().clear();
+		println(""+thing);
+	}
+} //}}}
+
+//{{{ XThis mt(String headLine)
+/**
+ * markdown table
+ *
+ *   example of use:
+ *
+ * mt("lleft|ccenter|rright")
+ *    .l(1).l("trunidyttemig").l(3)
+ *    .l(10).l(20).l("tredive")
+ *    .out();
+ *
+ */
+XThis mt(String headLine) {
+    String [] hfld = headLine.split("\\|");
+    int [] colW = new int[hfld.length];
+    int [] alignNum = new int[hfld.length];
+    ArrayList lines = new ArrayList();
+    ArrayList fields=null;
+    int fldCount = 0;
+    int fldPosPostInc=-1;
+    ArrayList formatLine = new ArrayList();
+    ArrayList headLineA = new ArrayList();
+    for (String f: hfld) {
+        colW[fldCount] = f.length()-1;
+        alignNum[fldCount] = "lcr".indexOf(f.charAt(0));
+        String formatStr = ":---:---:".substring(3*alignNum[fldCount],3*alignNum[fldCount]+3);
+        formatLine.add(formatStr);
+        headLineA.add(f.substring(1));
+        fldCount++;
+    }
+    lines.add(headLineA);
+    lines.add(formatLine);
+        
+    XThis l(fld) {
+        if (fldPosPostInc <= 0) {
+            if (fldPosPostInc == 0)
+                lines.add(fields);
+            fields = new ArrayList();
+        }
+        String fldStr = fld.toString();
+        fields.add(fld.toString());
+        if (fldPosPostInc == -1)
+            fldPosPostInc=1;
+        else
+            fldPosPostInc++;
+        if (colW[fldPosPostInc-1] < fldStr.length())
+            colW[fldPosPostInc-1] = fldStr.length();
+        if (fldPosPostInc == fldCount)
+            fldPosPostInc=0;
+        return this;
+    }
+    void out() {
+        if (fldPosPostInc == 0)
+            lines.add(fields);
+        if (fldPosPostInc != 0)
+            p("Inconsistent record length");
+        for (List line : lines) {
+            fldPosPostInc = 0; // would be an error otherwise
+            String lStr = "|";
+            for (String f : line) {
+                String [] spaces = new String[]{"","",""};
+                int divThatHalfs1 = alignNum[fldPosPostInc] == 1 ? 2 : 1;
+                spaces[alignNum[fldPosPostInc]] = new String(new char[(colW[fldPosPostInc]-f.length())/divThatHalfs1]).replace('\0',' ');
+                if (divThatHalfs1 == 2 ) // centered
+                    spaces[0] = new String(new char[colW[fldPosPostInc]-f.length()-spaces[1].length()]).replace('\0',' ');
+                lStr += spaces[2] + spaces[1] + f + spaces[0]+  "|";
+                fldPosPostInc++;
+                
+            }
+            p(lStr);
+        }
+    }
+    return this;
+} //}}}
+
+//{{{ void prt(String exp,  Object [] parms)
+/**
+ * Evaluated function call with zero or more argument
+ * shows expression first follwed by the evaluated value.
+ *
+ * @param exp litteral function call, trailed with ()
+ * @param parms array of parameters not being chars
+ */
+void prt(String exp, Object [] parms) {
+	String parmStr="";
+	for (Object parm : parms)
+		parmStr += parm instanceof String ? "\""+parm+"\",": parm+",";
+	parmStr =  rtrim(parmStr,",");
+	String expWP = exp.replaceAll("\\(\\)","\\("+parmStr+"\\)");
+	//((p(expWP);
+	p(expWP+": "+BeanShell.eval(aView(),BeanShell.getNameSpace(),expWP));
+}
+void prt(String exp) {
+	prt(exp, new Object[]{});
+}
+void prt(String exp, Object par) {
+	prt(exp, new Object[]{par});
+}
+void prt(String exp, Object par1, Object par2) {
+	prt(exp, new Object[]{par1,par2});
+}
+void prt(String exp, Object par1, Object par2, Object par3) {
+	prt(exp, new Object[]{par1,par2,par3});
+}//}}}
+
+
+//{{{ void statMes(Object thing)
+/**
+ **/
+void statMes(Object thing) {
+	if (thing instanceof String)
+		if (thing.length() < 100) {
+			jEdit.getActiveView().getStatus().setMessage(thing);
+			return;
+		}
+	p(thing);
+}//}}}

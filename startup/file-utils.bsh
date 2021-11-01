@@ -1,0 +1,398 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: 
+The folding style is important for lookup facility of macro startup */ 
+
+import java.nio.file.Files;
+import java.nio.charset.Charset;
+
+//{{{ String sDir()
+/**
+ * gets jEdit SettingsDirectory
+ *
+ * @return Jedit SettingsDirectory
+ */
+String sDir() {
+	return jEdit.getSettingsDirectory();
+} //}}}
+
+//{{{ String ux(String possibleBackslashed)
+/**
+ * slach a backslashed string
+ *
+ * @param possibleBackslashed path (windows)
+ * @return forward slashed path
+ */
+String ux(String possibleBackslashed) { 
+	return possibleBackslashed.replaceAll("\\\\","/"); 
+} //}}}
+
+//{{{ String win(String possiblSlashed)
+/**
+ * Backslash a slashed string
+ *
+ * @param possibleBackslashed path (unix)
+ * @return back slashed path
+ */
+String win(String possiblSlashed, boolean surroundWithDQuotes) { 
+	String sur  = surroundWithDQuotes ? "\"" : "";
+	return sur+possiblSlashed.replaceAll("/","\\\\")+sur; 
+} //}}}
+
+//{{{ String osDQuote()
+/**
+ * Going abroad java, as in console shell, demands handling file path's
+ * in os depent ways.
+ *
+ * @return double quote on windows 
+ */
+String osDQuote() {
+	return System.getProperty("file.separator").equals("/") ? "" : "\"";
+}//}}}
+
+//{{{ String osScriptName(String shellScript)
+/**
+ * Append '.cmd' if OS is Windows
+ *
+ * @param shellScript name
+ * @return shellScript,shellScript+".cmd", or null for OS being Unix, Windows or none of them 
+ */
+String osScriptName(String shellScript) {
+	return OperatingSystem.isUnix() ? shellScript : 
+		  (OperatingSystem.isWindows() ? shellScript+".cmd"
+		: null);
+}//}}}
+
+//{{{ String basename(String pathName)
+/**
+ * As the unix counterpart - try it in console
+ *
+ * @param pathName 
+ * @return filename without path, but With extension 
+ */
+String basename(String pathName) {
+	return ux(pathName).replaceAll(".+/","");
+}//}}}
+
+//{{{ String basename(String pathName,boolean withOutExtension)
+/**
+ * As the unix counterpart with a second modified second option
+ * to remove any extension
+ 
+ * @param pathName
+ * @param withOutExtension must true
+ * @return filename without either path or extension
+ */
+String basename(String pathName,boolean withOutExtension) {
+	String bwe = ux(pathName).replaceAll("^.+/","");
+	return withOutExtension
+		? bwe.replaceAll("\\.[^\\.]+$","")
+		: bwe;
+}//}}}
+
+//{{{ String basename()
+/**
+ * @return basename of current buffer 
+ */
+String basename() {
+	return basename(aBuffer().getName());
+}//}}}
+
+//{{{ String basename(boolean  withOutExtension)
+/**
+ * @param dummy boolean 
+ * @return basename without dot prefixed suffit (extension)
+ */
+String basename(boolean  withOutExtension) {
+	return basename(aBuffer().getName(),true);
+}//}}}
+
+//{{{ String dotExt(String fileName)
+/**
+ * Suffix .<whatever> of filename
+ *
+ * @param fileName
+ * @return Suffix .<whatever> of filename 
+ */
+String dotExt(String fileName) {
+	int revDotPos = fileName.lastIndexOf(".");
+	int revDotPos = ux(fileName).lastIndexOf("/") > revDotPos ? -1 : revDotPos;
+	return revDotPos != -1 ? fileName.substring(revDotPos+1) : "";
+}//}}}
+
+//{{{ String dotExt()
+/**
+ * @return suffit after last dot in filename of current buffer 
+ */
+String dotExt() {
+	return dotExt(aBuffer().getName());
+}//}}}
+
+//{{{ String dirname(String fileName)
+/**
+ * As the unix counterpart - try it in console
+ *
+ * @param fileName
+ * @return trailing slash obmitted path to file
+ */
+String dirname(String fileName) {
+	return ux(fileName).replaceAll("/[^/]*$","");
+}//}}} 
+
+//{{{ String dirname()
+/**
+ * @return dirname of current buffer 
+ */
+String dirname() {
+	return dirname(aBuffer().getPath());
+}//}}}
+
+//{{{ String pathname(String fileName, boolean withoutExtension)
+/**
+ * Pathname without file extension
+ *
+ * @param fileName
+ * @param withoutExtension must be (dummy) true
+ * @return Pathname without file extension
+ */
+String pathname(String fileName, boolean withoutExtension) {
+	return ux(fileName).replaceAll("\\.[^\\.]+$","");
+}//}}}
+
+//{{{ String pathname(boolean witoutExtension)
+/**
+ * @param witoutExtension is a dummy argument
+ * @return pathname of current buffer without dot prefixed trailling suffix
+ */
+String pathname(boolean witoutExtension) {
+	return pathname(aBuffer().getPath(),witoutExtension);
+}//}}}
+
+//{{{ String bufferPath()
+/**
+ * @return pathname of current buffer 
+ */
+String bufferPath() {
+	return ux(aBuffer().getPath());
+}//}}}
+
+//{{{ String bufferName()
+/**
+ * @return basename of current buffer 
+ */
+String bufferName() {
+	return ux(aBuffer().getName());
+}//}}}
+
+//{{{ List readAllLines(File file, boolean supressIOException)
+/**
+ * Iterabel, comparable, toArrayAble, random accessible list of utf-8 encoded file lines
+ *
+ * @param file to read from
+ * @return List of utf-8 encoded lines of file or an empty list on IO. If supressIOException
+ * is true a thrown IOException has the consequence of readLines returning an empty List.
+ */
+List readAllLines(File file, boolean supressIOException) {
+	List retval;
+	try {
+		retval = Files.readAllLines(file.toPath(),Charset.forName("UTF-8"));
+	} catch(IOException e) {
+		if (supressIOException) 
+			retval = new ArrayList();
+		else
+			throw e;
+	}
+	return retval;
+} //}}}
+
+//{{{ List readAllLines(File file)
+/**
+ * Iterabel, comparable, toArrayAble, random accessible list of utf-8 encoded file lines
+ *
+ * @param file to read from
+ * @return List of utf-8 encoded lines of file or empty list on IOException.
+ */
+List readAllLines(File file) {
+	return readAllLines(file,true);
+} //}}}
+
+//{{{ List readAllLines(String fileName)
+/**
+ * Iterabel, comparable, toArrayAble, random accessible list of utf-8 encoded file lines
+ *
+ * @param file name of file to read from
+ * @return  List of utf-8 encoded lines of file
+ */
+List readAllLines(String fileN) {
+	return readAllLines(new File(fileN),false);
+} //}}}
+
+//{{{ List  fileLines(String fileName, String startPattern, String endPattern)
+/**
+ * Lines of pattern delimited block. The pattern lines is not inclusive the block 
+ *
+ * @param fileName with lines
+ * @param startPattern matches the line before returned line 0
+ * @param endPattern matches the line after last line in returned list
+ * @return lines in pattern delimited block
+ */
+List  fileLines(String fileName, String startPattern, String endPattern) {
+	return Beam(Files.lines(new File(fileName).toPath()))
+		.filter(false,"item-> {"+
+			"if ( arg1 == true )"+
+			"    return item.matches(´"+endPattern+"´)  ? (arg1=false) : true;"+
+			"arg1 = item.matches(´"+startPattern+"´);"+
+			"return false; }")
+		.toList();	
+} //}}}
+
+//{{{ ist  dddPrefixedFileLines(String fileName, String startPattern, String endPattern)
+ /**
+  * Lines of pattern delimited block. Each line is prefixed a 3 digit fortrunning 
+  * number after being fetched. The pattern lines is not inclusive the block 
+  * @param fileName with lines
+  * @param startPattern matches the line before returned line 0
+  * @param endPattern matches the line after last line in returned list
+  * @return lines in pattern delimited block prefixed line numbers
+  */
+List  dddPrefixedFileLines(String fileName, String startPattern, String endPattern) {
+	return Beam(Files.lines(new File(fileName).toPath()))
+		.filter(false,"item-> {"+
+			"if ( arg1 == true )"+
+			"    return item.matches(´"+endPattern+"´)  ? (arg1=false) : true;"+
+			"arg1 = item.matches(´"+startPattern+"´);"+
+			"return false; }")
+		.map("item-> { String pre= arg1 < 10 ? ´00´: (arg1 < 100 ? ´0´: ´´); return pre+(arg1++)+item; }")
+		.toList();	
+ }//}}}
+
+//{{{ list fileLines(String fileName, String blockId)
+/**
+ * Lines of pattern delimited block. The pattern lines is not inclusive the block 
+ *
+ * @param fileName with lines
+ * @param blockId forms parameter startPattern for calling fileLines(String fileName, String startPattern, String endPattern) 
+ * @return lines in pattern delimited block
+ */
+List fileLines(String fileName, String blockId) {
+	return fileLines(fileName,"/\\*\\*\\*"+blockId,"\\s*\\*\\*\\*/");
+} //}}}
+
+//{{{ String fileLinesString(String fileName, String blockName)
+/**
+ * Return block of lines, surrounded by the lines
+ *
+ *  /***blockName
+ *		and
+ * 	***/
+/**
+ * Where blockName above is replaced with the actual parameter.
+ *
+ * @param fileName with Lines
+ * @param blockName is what identifies the block
+ * @return lines as a string 
+ */
+String fileLinesString(String fileName, String blockId) {
+    return String.join("\n",toArray(fileLines(fileName,blockId)));
+} //}}}
+
+//{{{ List startupBeanshellFilesLines()
+/**
+ * All lines in  jEdit settings directory startup directory files
+ *
+ * @return List of lines in all jEdit settings directory startup directory files 
+ */
+public List startupBeanshellFilesLines() {
+	List lines;
+	for (File f : new File(sDir()+"/startup").listFiles())
+		if (null==lines) 
+			lines = readAllLines(f);
+		else
+			lines.addAll(readAllLines(f));
+	return lines;
+} //}}}
+
+//{{{ void saveAllStartupFiles()
+/**
+ * saves all dirty files in jeditSettings/startup
+ */
+boolean saveAllStartupFiles() {
+	boolean wasDirty;
+	for (Buffer b: jEdit.getBuffers()) 
+		if (ux(b.getPath()).startsWith(sDir()+"/startup/"))
+			if(b.isDirty()) {
+				wasDirty=true;
+				while(!b.save(aView(),null));
+			}
+	return wasDirty;
+} //}}} 
+
+//{{{ void toFile(String fileName,thing) 
+/**
+ * Things being possible an array or iterable saved as file in charset utf-8
+ *
+ * @param fileName to hold thing
+ * @param thing to be saved as file in line broken toString() occurrence
+ */
+void toFile(String fileName,Object thing) {
+	toFile(fileName,thing,null);
+} //}}}
+
+//{{{ void toFile(String fileName,Object thing,Object filter) 
+/**
+ * Things being possible an array or iterable, converted saved as a file in charset utf-8
+ *
+ * @param fileName to hold thing
+ * @param thing to be saved as file in line broken toString() occurrence
+ * @param filter to transfer each line to something
+ */
+void toFile(String fileName,Object thing,Object function) {
+	OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(fileName),"utf-8"); 
+	if (thing.getClass().isArray() || thing instanceof AbstractCollection )
+		for (Object line : thing)
+			osw.write(""+(null==function ? line : function.apply(line))+"\n");
+	else osw.write(""+(null==function ? thing : function.apply(thing)));
+	osw.close();
+} //}}}
+
+//{{{ void appendToFile(String fileName, List lines)
+/**
+ *	Appends lines to file, charset utf-8
+ *
+ * @param fileName of file to which lines are appended
+ * @param lines to be appended
+ */
+void appendToFile(String fileName, List lines) {
+	List oldLines = readAllLines(new File(fileName),true);
+	oldLines.addAll(lines);
+	toFile(fileName,oldLines);
+} //}}}
+
+//{{{ void walkFileTree(File dir, XThis visitor, int maxDepth)
+/**
+ * Inspired by Files.walkFileTree - traverse a directory recursive
+ *
+ * @param dir is directory where walking starts
+ * @param visitor is a function object that has a method boolean continueVisitFile(File f)
+ * @param maxDepth is depth of recursion, -1 is unlimited
+ */
+void walkFileTree(File dir, XThis visitor, int maxDepth) {
+	for (File file: dir.listFiles()) 
+		if (file.isDirectory()) { 
+			if (maxDepth != 0 )
+				walkFileTree(file,visitor,maxDepth-1);
+		} else 
+			if (!visitor.continueVisitFile(file))
+				break;
+} //}}}
+
+//{{{ void walkFileTree(File dir, XThis visitor)
+/**
+ * Inspired by Files.walkFileTree - traverse a directory recursive to unlimited depth
+ *
+ * @param dir is directory where walking starts
+ * @param visitor is a function object that has a method boolean continueVisitFile(File f)
+ */
+void walkFileTree(File dir, XThis visitor) {
+	walkFileTree(dir, visitor,-1);
+} //}}}
+

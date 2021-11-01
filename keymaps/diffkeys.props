@@ -1,0 +1,12 @@
+#diff of added shorcut keys and original shorcut keys
+#Wed Oct 20 13:41:35 CEST 2021
+Misc/consoleFocusSwitcher.shortcut=A+x
+macros/actionsDialog.shortcut=CONTEXT_MENU
+cyberkiss.shortcut=CONTEXT_MENU
+actionsDialog.shortcut=S+BACK_SPACE
+openScratchpad.shortcut=A+s
+expand-abbrev.shortcut=C+LESS
+startup.shortcut=A+LESS
+recent-buffer.shortcut=C+TAB
+macros/openScratchpad.shortcut=A+s
+Files/favoritsOpen.shortcut=A+g

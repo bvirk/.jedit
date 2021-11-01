@@ -1,0 +1,13 @@
+cls(0);
+
+//p(actionNames("[M].+"));
+//p(matchesjEditProps("cyber.+"));
+//p(matchesSysProps(".*tmp.*"));
+//p(mEval("angle=36;height=1.3;2*height*tan(pi*angle/2/180)"));
+//p(sourcedFunctions());
+//p(jars());
+//p(basename());
+//p(basename(true));
+//p(dotExt());
+//view.splitVertically();view.unsplitCurrent();
+

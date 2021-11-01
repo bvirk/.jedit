@@ -1,0 +1,184 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: 
+The folding style is important for lookup facility of macro startup */
+
+import org.gjt.sp.jedit.bsh.XThis;
+
+/**
+ * Utilities for macros actionsDialog, cyberkiss and startup
+ */
+ 
+//{{{ void antTask(String task)
+/**
+ * Runs ant target for that build.xml file being in current directory for Console's System shell or above.
+ * A macro - 'cd current' swiches to that of current buffer.
+ *
+ * @param target is another word for the thing ant does - a marked up subscript inside build.xml
+ */
+void antTask(String target) {
+	View viev = aView();
+	Buffer buffer = aBuffer();
+	jEdit.saveAllBuffers(view);
+	new console.Shell.SwitchAction("System").invoke(jEdit.getActiveView());
+	wd=wdFirst=ux(jEdit.getPlugin("console.ConsolePlugin",true).getSystemShellVariableValue(view,"PWD")).replaceAll("/$","");
+	while (!new File(wd+"/build.xml").exists() && wd.length()>0)  
+		wd = dirname(wd);
+	if (!wd.equals(wdFirst) && wd.length() > 0)
+		runCommandInConsole(view,"System","cd "+wd);
+	runCommandInConsole(view,"System","ant common."+target);
+	view.goToBuffer(buffer);
+} //}}}       
+
+//{{{ void runInConsoleSystem(String parm, boolean switchDir)
+/**
+ *   Runs a command in console's system shell, prior saving all buffers optional switching to directory of current buffer
+ *
+ * @param parms is commands items for each run of make
+ * @param switchDir desides if switching to directory of buffer
+ */
+void runInConsoleSystem(String command, boolean switchDir) {
+	View viev = aView();
+	Buffer buffer = aBuffer();
+	jEdit.saveAllBuffers(view);
+	new console.Shell.SwitchAction("System").invoke(view);
+	if (switchDir)
+		runCommandInConsole(view,"System","cd "+dirname(buffer.getPath()));
+	runCommandInConsole(view,"System",command);
+	view.goToBuffer(buffer);
+} //}}}
+
+//{{{ void runNode()
+/**
+ * Runs Node.js against current buffer. 
+ *
+ */
+void runNode() {
+	View view=aView();
+	Buffer buffer = aBuffer();
+	jEdit.saveAllBuffers(view);	
+	runCommandInConsole(view,"System","node "+buffer.getPath());
+	view.goToBuffer(buffer);
+} //}}}
+
+//{{{ void runPhp()
+/**
+ * Runs php against current buffer. 
+ *
+ */
+void runPhp() {
+	View view=aView();
+	Buffer buffer = aBuffer();
+	jEdit.saveAllBuffers(view);	
+	runCommandInConsole(view,"System","php "+buffer.getPath());
+	view.goToBuffer(buffer);
+} //}}}
+
+//{{{ void actionsDialogGUI(XThis callBack, XThis menuSeq)
+/**
+ * JLabels grid to recieve key character invoked choice. Used by macro actionsDialog, cyberkiss and drypetDialog
+ *
+ * @param callBack for return choice to caller from within keyTyped handler 
+ * @param menuSeq to read labels, shortcut keys and default actions from. 
+ */
+void actionsDialogGUI(XThis callBack, XThis menuSeq) {
+	void addLabels() {
+		buttonPanel.add(new JLabel("<html>(Esc to leave)</html>"));
+		if (null != headLine) {
+			buttonPanel.add(new JLabel("<html><b>"+headLine+"</b></html>"));
+			buttonPanel.add(new JLabel("<html><br></html>"));
+		}
+		
+		while ((labelText=menuSeq.readLabelText()) != null) {
+			menuSize++;
+			JLabel j = new JLabel(labelText);
+			if (menuSeq.defIndex() == menuSize-1) {
+				j.setBackground(Color.lightGray);
+				j.setOpaque(true);
+			}
+			buttonPanel.add(j);
+		}
+	}
+	View view = aView();
+	dialog = new JDialog(view,true); //, title, false);
+	dialog.setUndecorated(true);
+    content = new JPanel(new BorderLayout());
+    dialog.setContentPane(content);
+    dialog.addKeyListener(this);
+    buttonPanel = new JPanel();
+	int menuSize;
+    String headLine = menuSeq.heading();
+	addLabels();
+    buttonPanel.setLayout(new GridLayout(menuSize+1+(null != headLine ? 2 : 0),1));
+	content.add(buttonPanel, "South");
+	dialog.pack();
+    dialog.setLocationRelativeTo(view);
+    dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+    public void keyTyped(KeyEvent e) {
+    	char c = e.getKeyChar();
+    	if (((byte)c)==27) 
+    		dialog.dispose();
+    	int indexOfKeyTyped = menuSeq.shCKeys().indexOf(c);
+    	if (indexOfKeyTyped > -1 || (menuSeq.defIndex() >= 0 && ( c ==' ' || c == '\n'))) {
+    		dialog.dispose();
+    		callBack.command((c != ' ' && c != '\n')
+    			? menuSeq.menuItem(indexOfKeyTyped)
+    			: "");
+    	}
+    }
+    public void keyPressed(KeyEvent e) {}
+    public void keyReleased(KeyEvent e) {}
+    dialog.setVisible(true);
+} //}}}
+
+//{{{ XThis NumSeq(List menues,String headLine)
+/**
+ * Skeleton for a parameter object to actionsDialog. This example shows how NumSeq is used.
+ *
+ *  void actionsDialogExample() {
+ *  	command(String chosen) {
+ *  		p(chosen);
+ *  	}
+ *  	actionsDialogGUI(this,NumSeq(Arrays.asList(new String[]{
+ *  		 "abra"
+ *  		,"kadabra"
+ *  		,"pif"
+ *  		,"paf"
+ *  		,"puf"
+ *  		}),"print me"));
+ *  }
+ * 
+ * As an example of the flexibility it gives to have some part of actionsDialog's functionality parameterized, 
+ * look at how actionsDialog is used in macro actionsDialog contra in macro cyberkiss
+ *
+ * @param menues is a List of strings that becomes the shorcut key profixed choices to chose among
+ * @param headline shows a context at top as a reminder/check about what the choices has relevance for.
+ * @return XThis object with methods to retrieve headings, shortcut keys, label text and menues. 
+ */
+XThis NumSeq(List menues,String headLine, int defValue) {
+	int ix;
+	String sCKeys="";
+	String heading() { return headLine; }
+	String shCKeys() { return sCKeys; } 
+	String readLabelText() {
+		if (ix == menues.size())
+			return null;
+		String sC=Character.toString((char)(ix+49+(ix>8 ? 39 : 0)));
+		sCKeys += sC;
+		return "<html><u>"+ sC +"</u> "+menues.get(ix++)+"</html>";
+	}
+	int defIndex() { return defValue; }
+	
+    /**
+     * Multiphurpose index or item
+     *
+     * @param index of selection
+     * @return index or menuItem 
+     */
+	String menuItem(int index) {
+		return defValue > -1 ? ""+index : menues.get(index);
+	}
+	return this;
+}
+XThis NumSeq(List menues,String headLine ) {
+	return NumSeq(menues, headLine, -2);
+}//}}}

@@ -1,0 +1,17 @@
+
+/**
+ * Toogles caret focus between console on buffer. Use it twice caret jumps to  
+ * wrong window. Assumes that console has focus 10 seconds after last use of
+ * this macro
+ */
+void toogleConsoleFocus() {
+	int snow=java.time.LocalTime.now().toSecondOfDay();
+	int last = jEdit.getIntegerProperty("console.shell.caretfocus",snow-11);
+	int nowBitOredConsoleFocus = last < snow-10 || (last & 1) == 0 ? (snow | 1 ): (snow & 131070);
+	jEdit.setIntegerProperty("console.shell.caretfocus",nowBitOredConsoleFocus);
+	if ((nowBitOredConsoleFocus & 1) == 1)
+		view.goToBuffer(buffer);
+	else
+		view.getDockableWindowManager().showDockableWindow("console");
+}
+toogleConsoleFocus();

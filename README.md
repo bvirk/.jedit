@@ -1,7 +1,7 @@
-## todo adviseses after new install of jEdit
+## After new install of jEdit
 
 
-#####rules of this info:
+##### Rules of this info:
 
 - \<Settings Directory\> is implied, when mentioning files names directories without paths. 
 
@@ -26,7 +26,7 @@
 2. check properties list in startup/initialize.bsh and run macro [Interface/flushGlobal_Namespaced]() after editting:
 	- placement of jars
 	- browser
-	- 
+	- drypet.server for macro drypetDialog
 3. Run macro cyberkiss with current buffer being a .java or .bsh file, and test api help of marked up, or left to caret being, word.
 5. Evaluate usefullness
 	- shorcut keys listed by macro Properties/changedShortcutKeys

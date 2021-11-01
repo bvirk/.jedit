@@ -67,8 +67,9 @@ testArea
 ```			
 		
 ##### Macro drypetDialog
-	property drypet.serverurl in startup/initialize.bsh
-	on windows [curl](https://curl.se/windows/) might be needed.
+	
+property drypet.serverurl in startup/initialize.bsh   
+on windows [curl](https://curl.se/windows/) might be needed.
 		
 ##### php Edit mode, make keyword addition possible.
 

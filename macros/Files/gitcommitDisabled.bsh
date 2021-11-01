@@ -1,2 +1,0 @@
-jEdit.setBooleanProperty("options.macros.Files.gitCommitEnabled",false);
-view.getStatus().setMessage("gitsynced now disabled");

@@ -1,6 +1,8 @@
 void favOpenActionsDialog() {
 	void command(String choice) {
-		view.goToBuffer(jEdit.openFile(view,files.get(choice))); 
+		view.goToBuffer(jEdit.openFile(view,files.get(choice)));
+		Buffer b = view.getBuffer();
+		b.toggleLocked(view);
 	}
 	List l = new ArrayList();
 	HashMap files = new HashMap();

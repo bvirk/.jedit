@@ -21,7 +21,7 @@ py;p_ython												=runPython
 php;<html><b><u>Php<u></b></html>
 php;p_hp												=runPhp
 php;re_motephp											=runRemotePhp
-bsh.php.md.css;dry_pet									=drypetDialog
+bsh.php.md.css;_imd									=imdDialog
 *///
 
 //{{{ void actionsDialog(String suffix)
@@ -69,8 +69,8 @@ void actionsDialog(String suffix) {
 			case "runMake":
 			    runInConsoleSystem("make && make run",true);
 			    break;
-			case "drypetDialog":
-				Macros.runScript(view,jEdit.getSettingsDirectory()+"/macros/Interface/drypetDialog.bsh",true);
+			case "imdDialog":
+				Macros.runScript(view,jEdit.getSettingsDirectory()+"/macros/Interface/imdDialog.bsh",true);
 			    break;
 			    
 			default:

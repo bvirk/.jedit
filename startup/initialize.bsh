@@ -17,9 +17,9 @@ void intializeProperties() {
 	for (String[] keysets : new String[][] {
 		 
 		 { // COMMON - index 0
-		  "drypet.message={0}"
-		 ,"drypet.title=drypet input"
-		 ,"drypet.serverurl=http://drypet"
+		  "imd.message={0}"
+		 ,"imd.title=imd input"
+		 ,"imd.serverurl=http://imd"
 		 
 		 },
 		{ // NON WINDOWS - index 1

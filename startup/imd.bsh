@@ -78,7 +78,7 @@ List stdOut(String cmd) {
  @return list of lines of the curl command
  **/
 List curlCommand(String cmdAndArgs) {
-	final String curlCmd ="curl -s \""+jEdit.getProperty("drypet.serverurl")+"/commands.php"; 
+	final String curlCmd ="curl -s \""+jEdit.getProperty("imd.serverurl")+"/commands.php"; 
 
 	String parms="";
 	String [] args = cmdAndArgs.replaceAll("\\s{2,}"," ").split(" ");

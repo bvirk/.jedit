@@ -1,0 +1,46 @@
+cls(base32RndStr(14));
+import  java.text.MessageFormat;
+
+List pieDecreaseLinear(String[] slices, String fmtText) {
+	List l = new ArrayList();
+	double del;
+	double rest=1;
+	int slen = slices.length;
+	for (int i=1; i<=slen;i++) {
+		del = rest/(5.25-(slen-3-i)/4/slen);
+		rest -= del;
+		String part = ""+((float)(Math.round(1000*del)))/10;
+		l.add(new String[]{slices[i-1],part});
+	}
+	return Beam(l)
+	.map(fmtText,"item-> {"
+			+"return java.text.MessageFormat.format(arg1,item);}")
+ 	.toList();
+}
+
+String[]s = new String[]{
+	 "browser/email"
+	,"msacces"
+	,"jedit"
+	,"sketchup"
+	,"visual studio"
+	,"borland c++"
+	,"media player og vlc"
+	,"total commander"
+	,"java og ant"
+	,"visual studio"
+	,"borland assembler"
+	,"photoshop"
+	,"git"
+	,"cdburnerxp"
+	,"java og ant"
+	,"bat scripts"
+	,"vbscript/asp"
+	,"ffmpeg konvertering"
+	,"audacity"
+	,"imagemagick"
+	,"works for dos"
+	,"edlin and readme.com"
+	,"other dos commands"};
+	
+p(pieDecreaseLinear(s,"<tr><td>{0}</td><td data-graph-name=''{0}''>{1}</td></tr>"));

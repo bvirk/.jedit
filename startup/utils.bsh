@@ -338,8 +338,8 @@ List matchesSysProps(String pattern) {
  * Example of use for php, ignoring true categorizing in Errors vs. Warnings.
  *
  * String[] subjects = new String[]{
- * 	"Fatal error: Uncaught Error: Call to undefined function bvirk\\commands\\trut() in /var/www/domain/drypet/commands/Play.php:27\ndit\ndat\ndut"
- *    ,"Warning: include(notExistingFile): failed to open stream: No such file or directory in /var/www/domain/drypet/commands/Play.php on line 29"};
+ * 	"Fatal error: Uncaught Error: Call to undefined function bvirk\\commands\\trut() in /var/www/domain/imd/commands/Play.php:27\ndit\ndat\ndut"
+ *    ,"Warning: include(notExistingFile): failed to open stream: No such file or directory in /var/www/domain/imd/commands/Play.php on line 29"};
  * String[] regexs= new String[]{
  * 	 "^(.+?(?=in\\s+/))in\\s+([^:]+):(\\d+).*"
  * 	,"^(.+?(?=in\\s+/))in\\s+(.+?(?=\\s+on\\s+line))[^\\d]+(\\d+).*"};
@@ -970,3 +970,64 @@ void iconifyAfter(int xMillis) {
  */
 public void pa(Object egg) { print("..."+egg); 
 } //}}}
+
+//{{{ void blockingCurBufSaver(XThis xthis, Buffer buffer)
+/**
+ * 'Halts' execution of beanshell script until current buffer is saved.
+ * The script is called from a wrapper function object which main method is 
+ * invoked as a callback. In other words: the script is runned in a thread that 
+ * not blocks jedit saving and editbus progressing, but blocks invoking the script
+ * until first comming what='SAVED' of a editbus bufferupdate message.
+ *
+ * Notice that it is not the script file, but what is current buffer during its 
+ * execution, that is saved if needed.
+ *
+ * The scenarie that demanden this solution was slow update progress of files
+ * mounted as files of a NFS client and being files which content imidiately 
+ * thereafter was requested by apache using http of curl.
+ *
+ * usage:
+ * 
+ * myMacro(parm ...) { ... }
+ * 
+ * void invokeMyMacro {
+ * 	 blockingCurBufSaver(this,buffer)
+ * 	 void main() {
+ * 	 	myMacro(parm ...)
+ * 	 }
+ * }
+ *
+ * @param funcObjectHaving_main is object of calling invokeMainMacro function
+ * @param buffer is current buffer
+ */
+void blockingCurBufSaver(XThis funcObjectHaving_main, Buffer buffer) {
+	new Thread(new CurBufSaver(funcObjectHaving_main, buffer)).start();
+}
+public class CurBufSaver extends EditPlugin implements EBComponent,Runnable {
+	private boolean isUpdated=false;
+	private XThis xthis;
+	private Buffer buffer;
+	
+	public CurBufSaver(XThis funcObjectHaving_main, Buffer buffer) { 
+		xthis = funcObjectHaving_main;
+		this.buffer=buffer;
+	}
+	public void run() {
+		if (buffer.isDirty()) {
+			EditBus.addToBus(this);
+			buffer.save(aView(),null,true);
+			while (!isUpdated) {
+				Thread.currentThread().sleep(50);
+			}
+			EditBus.removeFromBus(this);
+		}
+		xthis.main();
+	}
+	public void handleMessage(EBMessage message) {
+		if (message instanceof BufferUpdate) { 
+			if (((BufferUpdate)message).getWhat().toString().equals("SAVED"))
+				isUpdated=true;
+		}
+	}
+	
+}//}}}

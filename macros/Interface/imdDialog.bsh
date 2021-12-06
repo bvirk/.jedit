@@ -3,7 +3,6 @@
 */
 
 import org.jsoup.Jsoup;
-buffer.save(view,null,true);
 
 /* *********** global variables *******/
 String DOCROOT; 
@@ -21,7 +20,7 @@ for (Object[] kv : new Object[][] {
 	,{PAGEHAVINGMD	=2,"PAGEHAVINGMD"}
 	,{MDPAGE		=4,"MDPAGE"} 
 	,{COMMAND		=8,"COMMAND"} 
-	,{NOTDRYPET    =16,"NOTDRYPET"} 
+	,{NOTDRYPET    =16,"NOT_IMD"} 
 	,{FEJL40	   =32,"FEJL40"}})
 		ust.put(kv[0],kv[1]);
 
@@ -54,7 +53,7 @@ A command in use, has two snippets:
 Commands is removed by deleting corresponding php file
  **/
 void addCommand() {
-	String className = capitalized(GUIUtilities.input(view, "drypet",new String[]{"new command"},""));
+	String className = capitalized(GUIUtilities.input(view, "imd",new String[]{"new command"},""));
 	savePhpIfNotExists(className,"commands", "CommandsBase","CommandsFuncs");
 	view.goToBuffer(jEdit.openFile(view,DOCROOT+COMMANDS+className+".php"));
 }//}}} 
@@ -67,7 +66,7 @@ When adding a subpage, page and page/index is automatically made if they didn't 
  **/
 void editPage() {
 	cls("");
-	String pageName = GUIUtilities.input(view, "drypet",new String[]{"new page"},"");
+	String pageName = GUIUtilities.input(view, "imd",new String[]{"edit new or existing page"},"");
 	int sPos=pageName.indexOf("/");
 	String curBufDirSlash = (bufferUse() < 8 ) && (sPos == -1) ? dirname()+"/" : DOCROOT+PAGESSETS;
 	boolean isMDPage = curBufDirSlash.length()>SITEPAGESSTARTPOS || sPos > 0;
@@ -77,16 +76,17 @@ void editPage() {
 			? capitalized(dirname().replaceAll("^.+/",""))
 			: capitalized(pageName);
 	String fileToOpen = isMDPage ? curBufDirSlash+pageName+".md" : DOCROOT+PAGESSETS+className+".php";
-	
-	//p("curBufDirSlash "+curBufDirSlash);
-	//p("pageName       "+pageName      );
-	//p("sPos           "+sPos          );
-	//p("className      "+className     );
-	//p("isMDPage       "+isMDPage      );
-	//p("fileToOpen     "+fileToOpen    );
+		
+	p("curBufDirSlash "+curBufDirSlash);
+	p("pageName       "+pageName      );
+	p("sPos           "+sPos          );
+	p("className      "+className     );
+	p("isMDPage       "+isMDPage      );
+	p("fileToOpen     "+fileToOpen    );
 	
 	if (isMDPage) {
 		if (sPos > 0) {
+			
 			saveMdIfNotExixsting(curBufDirSlash+pageName.substring(0,sPos)+"/index.md");
 		}
 		saveMdIfNotExixsting(curBufDirSlash+pageName+".md");
@@ -162,7 +162,7 @@ void rm() {
 		return;
 	}
 	String mes ="Delete\n\n"+ String.join("\n",curlCommand("tree "+pageBaseName()));
-	if (GUIUtilities.confirm(view, "drypet",new String[]{mes},JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE)==2)
+	if (GUIUtilities.confirm(view, "imd",new String[]{mes},JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE)==2)
 		return;
 	if (bUse >1) {  
 		for(File f: new File(DOCROOT+PAGESSETS+pageBaseName()).listFiles())
@@ -204,7 +204,7 @@ void tree() {
 
 //{{{ void usage()
 /**
-Context of current buffer in drypet use.
+Context of current buffer in imd use.
  **/
 void usage() {
 	//cls(0);
@@ -216,7 +216,7 @@ void usage() {
 /* *********** UTILITY FUNCTIONS *****************/
 //{{{ int bufferUse()
 /**
-  Current buffer use in drypet relation
+  Current buffer use in imd relation
   
   @return one of PAGEALONE,PAGEHAVINGMD,MDPAGE,COMMAND,NOTDRYPET or FEJL40
   **/
@@ -264,10 +264,10 @@ String belongingFile(String type) {
   @return the reply to the answer
   **/
 String defInput(String mes, String defKey, String newValue) {
-	String fullDef = "drypet.input."+defKey;
+	String fullDef = "imd.input."+defKey;
 		if (newValue != null)
 			jEdit.setProperty(fullDef,newValue);
-	String di = GUIUtilities.input(view, "drypet",new String[]{mes},jEdit.getProperty(fullDef,""));
+	String di = GUIUtilities.input(view, "imd",new String[]{mes},jEdit.getProperty(fullDef,""));
 	if (di != null)
 		jEdit.setProperty(fullDef,di);
 	return di;
@@ -428,7 +428,11 @@ void savePhpIfNotExists(String className, String dir, String baseClassName, Stri
 		"<?php\nnamespace bvirk\\"+dir+";\n\nclass "
 		+className
 		+" extends "+ baseClassName+" {\n"
-		+ (use != null ? "\tuse "+use+";\n}" : "\n}");
+		+ (use != null ? "\tuse "+use+";" : "")
+		+"\t//protected $title='';\n"
+		+"\t//protected $useFocusReload=true;\n"
+		+"\t//protected $useJquery=true;\n"
+		+"\n}";
 	//p(fileContent);
 	if (!new File(fileN).exists())
 		toFile(fileN,fileContent);
@@ -451,7 +455,7 @@ void saveMdIfNotExixsting(String fileName) {
 
 //{{{ String usageText(int num)
 /**
-  Used to shows the drypet use of current buffer.
+  Used to shows the imd use of current buffer.
   @param statusnumber of current buffer  
   @return Textual status.	  
   **/
@@ -463,7 +467,7 @@ String usageText(int statusNumber) {
 
 
 /**
- * Dialog for administation a php microframework called drypet.
+ * Dialog for administation a php microframework called imd.
  * Beaupet is php 7.3 framework running under apache.
  * 
  * The webserver filesystem must be locally available. 
@@ -520,31 +524,40 @@ void remoteCmdsActionsDialog(String docroot, String server) {
 	}
 	
 	/* *********** EXECUTTION START *****************/
-
-	DOCROOT = OperatingSystem.isWindows()
-		? capitalized(docroot+"/"): docroot+"/"; 
+	//main() {
+		DOCROOT = OperatingSystem.isWindows()
+			? capitalized(docroot+"/"): docroot+"/"; 
+		
+		SERVER = server;
+		
+		DOCROOTSTARTPOS =	DOCROOT.length();
+		SITEPAGESSTARTPOS =DOCROOTSTARTPOS+PAGESSETS.length();
+		
+		if (!new File(DOCROOT).exists()) {
+			statMes(DOCROOT+" don't seems existing or mounted");
+			return;
+		}
+		XThis errorListCtl = phpToErrorList();
+		List l = curlCommand("cmds");
+		if (errorListCtl.hasErrors(l))
+			return;
+		String[] arr = l.toArray(new String[0]);
+		Arrays.sort(arr);
+		
+		final String keyLatestActionLetter = "options.actionthatbuffernumber";
+		actionsDialogGUI(this,NumSeq(Arrays.asList(arr),"imd command",jEdit.getIntegerProperty(keyLatestActionLetter)));
+	//}
 	
-	SERVER = server;
-	
-	DOCROOTSTARTPOS =	DOCROOT.length();
-	SITEPAGESSTARTPOS =DOCROOTSTARTPOS+PAGESSETS.length();
-	
-	if (!new File(DOCROOT).exists()) {
-		statMes(DOCROOT+" don't seems existing or mounted");
-		return;
-	}
-	XThis errorListCtl = phpToErrorList();
-	List l = curlCommand("cmds");
-	if (errorListCtl.hasErrors(l))
-		return;
-	String[] arr = l.toArray(new String[0]);
-	Arrays.sort(arr);
-	
-	final String keyLatestActionLetter = "options.actionthatbuffernumber";
-	actionsDialogGUI(this,NumSeq(Arrays.asList(arr),"drypet command",jEdit.getIntegerProperty(keyLatestActionLetter)));
 }
-remoteCmdsActionsDialog(
-	OperatingSystem.isWindows() 
-		? "d:/var/www/domain/drypet"
-		: "/var/www/domain/drypet"
-	,jEdit.getProperty("drypet.serverurl"));
+
+smain() {
+	blockingCurBufSaver(this,buffer);
+	void main() {
+		remoteCmdsActionsDialog(
+			OperatingSystem.isWindows() 
+				? "d:/var/www/domain/imd"
+				: "/var/www/domain/imd"
+			,jEdit.getProperty("imd.serverurl"));
+	}
+}
+smain();

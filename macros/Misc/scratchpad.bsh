@@ -1,4 +1,4 @@
-cls(0);
+cls(base32RndStr(14));
 
 //p(actionNames("[M].+"));
 //p(matchesjEditProps("cyber.+"));
@@ -11,3 +11,9 @@ cls(0);
 //p(dotExt());
 //view.splitVertically();view.unsplitCurrent();
 
+void foo() {  
+ 	blockingCurBufSaver(this,buffer);
+	void main() { p("I am foo->main"); }
+}
+foo(); 
+ 

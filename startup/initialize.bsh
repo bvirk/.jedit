@@ -17,10 +17,15 @@ void intializeProperties() {
 	for (String[] keysets : new String[][] {
 		 
 		 { // COMMON - index 0
-		  "imd.message={0}"
-		 ,"imd.title=imd input"
-		 ,"imd.serverurl=http://imd"
-		 
+		 "imd.message={0}"
+		,"imd.title=imd input"
+		,"imd.serverurl=http://imd"
+		,"guiutilities.confirm.custom.message={0}"
+		,"guiutilities.confirm.message={0}"
+		,"guiutilities.confirm.title=Confirm choice"
+		,"guiutilities.input.message={0}"
+		,"guiutilities.input.title=input value"
+
 		 },
 		{ // NON WINDOWS - index 1
 		 "cyberkiss.browser=firefox"

@@ -18,6 +18,8 @@ c.cpp;<html><b><u>Make<u></b></html>
 c.cpp;r_un												=runMake
 py;<html><b><u>Python<u></b></html>
 py;p_ython												=runPython
+scm;<html><b><u>Scheme9</u></b></html>
+scm;_scheme												=runScheme
 php;<html><b><u>Php<u></b></html>
 php;p_hp												=runPhp
 php;re_motephp											=runRemotePhp
@@ -72,7 +74,9 @@ void actionsDialog(String suffix) {
 			case "imdDialog":
 				Macros.runScript(view,jEdit.getSettingsDirectory()+"/macros/Interface/imdDialog.bsh",true);
 			    break;
-			    
+			case "runScheme":
+				runInConsoleSystem("s9 "+buffer.getPath(),false);
+				break;
 			default:
 				Macros.message(view,"internal bug in macro actionsDialog: "+cmds.get(menuLines.getProperty(keyLatestActionLetter)));
 		}

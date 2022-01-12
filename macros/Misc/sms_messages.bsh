@@ -1,0 +1,38 @@
+cls("SMS message");
+
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Node;
+
+void textContent(String xmlFile, String elemName, String[] fields, Map nice) {
+	void command(String timerecip) {
+		timeEnqueuedVal = timerecip.substring(0,field0len);
+		Node choice = findNode(xmlFile,elemName, new String[][] {new String[]{"timeEnqueued",timeEnqueuedVal}});
+		p("recipient: " +nice.get(choice.getAttribute("singleRecipient")));
+		p(choice.getTextContent());
+	}
+	List l = new ArrayList(); 
+	int field0len;
+	
+	Node latest = findNode(xmlFile,elemName,new String[][]{});
+	if (confirmYN("Sidste gemte sms er \n"
+		+latest.getAttribute("timeEnqueued").replaceAll("(\\d)T(\\d)","$1 klokken: $2").replaceAll(":\\d\\dZ$","")
+		+"\nØnskes listen af sms'er hentet igen")==0 /*yes*/) {
+		auth = inputAssistedProperty("sms.auth", "Specify username:password \n- with colon between username and password\n- but no spaces anywhere");
+		svrofsvr=inputAssistedProperty("sms.svrwithsvrrec","Specify the server which DNS svr record\nholds the name of the server\nthat facilitates the api of the sms gateway");
+		String svr = "https://"+stdOut("dig +short " + svrofsvr + " srv").get(0).replaceAll("^[\\d ]+","").replaceAll("\\.$","");
+		String deliverDoc = String.join("\n",stdOut("curl -u "+ auth +" "+svr+"/messages"));
+		toFile(xmlFile,deliverDoc);
+	}
+	for (String[] att: attributes(xmlFile,elemName,fields)) {
+		field0len = att[0].length();
+		l.add(att[0]+" "+nice.get(att[1]));
+	}
+	if (l.size() > 0)
+		actionsDialogGUI(this,NumSeq(l,"xml data"));
+	else
+		p("no items found");
+}
+         
+Map m = propsFromFile(ux(sDir()+"/phoneNumbers.props"));
+textContent(ux(sDir()+"/smsMessages.xml"),"Message", new String[]{"timeEnqueued","singleRecipient"},m);
+

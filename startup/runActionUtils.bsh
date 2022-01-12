@@ -37,7 +37,7 @@ void antTask(String target) {
  * @param switchDir desides if switching to directory of buffer
  */
 void runInConsoleSystem(String command, boolean switchDir) {
-	View viev = aView();
+	View view = aView();
 	Buffer buffer = aBuffer();
 	jEdit.saveAllBuffers(view);
 	new console.Shell.SwitchAction("System").invoke(view);

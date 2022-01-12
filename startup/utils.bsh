@@ -77,6 +77,37 @@ String capitalized(Object s) {
 return s != null ? ""+s.substring(0,1).toUpperCase()+s.substring(1) : null;
 } //}}}
 
+//{{{ XThis sameAgain()
+/**
+ * Dummy self returner apply in an object
+ *
+ * @return object which apply method return it argument untouched
+ */
+XThis sameAgain() {
+	String apply(String s) { return s; }
+	return this;
+}//}}}
+
+//{{{ Map swapMap(Map src, XThis applyer)
+/**
+ * Swap keys and values in map
+ *
+ * @param src to be swapped
+ * @param applyer object which apply method maps prior value to be key in resulting Map
+ * @return map with keys nad values swapped
+ */
+Map swapMap(Map src, XThis applyer) {
+	Map retval = new HashMap();
+	for (String me : src.keySet())
+		retval.put(applyer.apply(src.get(me)),me);
+	return retval;
+}//}}}
+
+//{{{ Map swapMap(Map src)
+Map swapMap(Map src) {
+	return swapMap(src,sameAgain());
+}//}}}
+
 //{{{ String[] toArray(Object toArrayAble)
 /**
  * Shortcut for toArrayAble.toArray(String[]), where toArrayAble is a container instance implementing Collection 
@@ -1031,3 +1062,16 @@ public class CurBufSaver extends EditPlugin implements EBComponent,Runnable {
 	}
 	
 }//}}}
+
+//{{{ void assert(boolean noFail,String mess)
+/**
+ * assertion that throws exception with description. The discription should be
+ * ´filename´:´linenumber´: ´description´
+ *
+ * @param noFail that is true as a sign of no fail
+ * @param mess ´filename´:´linenumber´: ´description´ that shows up in error message frame
+ */
+void assert(boolean noFail,String mess) {
+	if (!noFail)
+		throw new Exception(mess);
+}

@@ -1,0 +1,114 @@
+cls("SMS");
+
+void sendMessage(message) {
+	String varDump(String recipient) {
+		String parms = 
+			 "sender=4528569086&recipients="
+			+recipient
+			+"&message="
+			+message;
+		return String.join("\n",stdOut("curl -X POST -d \""+parms.toString()+"\" "+svr));
+	}
+	void invokeSendMessage() {
+		int chCnt=message.length();
+		int[] segCnt = {0,160,306,459};
+		if (chCnt > segCnt[segCnt.length-1]) {
+			p("Message to long with "+(chCnt-segCnt[segCnt.length-1])+ " characters");
+			return;
+		}
+		int antal = chCnt>segCnt[2] ? 3 : (chCnt > segCnt[1] ?  2 : 1);
+	
+		actionsDialogGUI(this,NumSeq(new ArrayList(m.keySet()),"rest "+(segCnt[antal]-chCnt)+"/"+antal+"."));
+	}
+	
+	void command(String choice) { // send sms - set message id
+		if (confirmYN("sms delivered confirmation",choice)==1 /*no*/)
+			return;
+		Map sResp = messageResp(m.get(choice));
+		if (sResp.containsKey("SAXException")) {
+			p("xml parse errror");
+			return;
+		}
+		for (String eName :  sendRespTags) {
+			if (eName.equals("Message[id]")) 
+				jEdit.setProperty("sms.unconfirmedReciveId",sResp.get(eName));
+			else
+				p(eName+": "+sResp.get(eName));
+		}
+		finalflow();	
+	}
+	
+	Map messageResp(String recipient) {
+		String parms = 
+			 "sender=4528569086&recipients="
+			+recipient
+			+"&message="
+			+message;
+			
+		String xmlStr = String.join("\n",stdOut("curl -u " + auth  +" -X POST -d \""+parms.toString()+"\" "+svr+"/messages"));
+		//p(xmlStr);
+		toFile("/tmp/sendSMSResp.xml",xmlStr);
+		//p(sendRespTags);
+		Map sResp = textByTagNames(xmlStr,sendRespTags);
+		return sResp;
+	}
+	
+	void finalflow() {
+		do {
+			sendConfirmDelivered();
+			if (isDelivered) {
+				clrMesId();
+				break; 
+			}
+			int answer= confirmYNC(
+				"sms delivered confirmation"
+				,"Delivered to phone confirmation missing\n'No' aborts confirming latest delivery\n'Cancel' later confirmation - on next sms sending\nTry again now?"
+				);
+			//p("answer was "+(answer==0 ? "0: - ok to try again" : (answer==1 ? "1:no - abort conformation":"2: later confirmation") ));
+			if (answer!=0 /*yes*/ )
+				break;
+		} while (true); //jedit bug
+		if (answer==1/*no=abort*/)
+			clrMesId();
+	}
+	
+	void sendConfirmDelivered() {
+		p("SMS Delivered info");
+		assert(lastIdIsPending(),"sendsms.bsh:91:last is not pending?");
+		String deliverDoc = String.join("\n",stdOut("curl -u "+ auth +" "+svr+"/messages/" + jEdit.getProperty("sms.unconfirmedReciveId")));
+		toFile("/tmp/deliverConfirm.xml",deliverDoc);
+		deliverResp = textByTagNames(deliverDoc,deliverRespTags);
+		p(swapMap(m).get(  deliverResp.get(deliverRespTags.get(0)).replaceAll("\\+","") ));
+		for (String e : deliverRespTags)
+			p(attributeName(e)+": "+deliverResp.get(e));
+		if (deliverResp.get("MessageRecipient[timeDelivered]").length()>0)
+			isDelivered=true;
+	}
+	
+	boolean lastIdIsPending() {  //==pending id
+		return jEdit.getProperty("sms.unconfirmedReciveId") != null;
+	}
+	void clrMesId() {
+		jEdit.setProperty("sms.unconfirmedReciveId",null);
+	}
+	XThis sp2underscore() { String apply(String s) { return s.replaceAll(" +","_"); }
+		return this;
+	}
+
+	//Map m=fileLinesHashTable(scriptPath,"recipients");
+	Map m = swapMap(propsFromFile(ux(sDir()+"/phoneNumbers.props")),sp2underscore());
+	List sendRespTags = asList("Message[id]","acceptedRecipientCount","erroneousRecipientCount","cost","newBalance");
+	List deliverRespTags = asList("MessageRecipient[number]","MessageRecipient[erroneous]","MessageRecipient[timeSent]","MessageRecipient[timeDelivered]");
+	boolean isDelivered;
+	auth = inputAssistedProperty("sms.auth", "Specify username:password \n- with colon between username and password\n- but no spaces anywhere");
+	svrofsvr=inputAssistedProperty("sms.svrwithsvrrec","Specify the server which DNS svr record\nholds the name of the server\nthat facilitates the api of the sms gateway");
+	
+	//String svr ="http://imd/parm.php";
+	String svr = "https://"+stdOut("dig +short " + svrofsvr + " srv").get(0).replaceAll("^[\\d ]+","").replaceAll("\\.$","");
+
+	if (!lastIdIsPending())
+		invokeSendMessage();
+	else
+		finalflow();
+}
+sendMessage(URLEncoder.encode(textArea.getText().trim(),"UTF-8"));

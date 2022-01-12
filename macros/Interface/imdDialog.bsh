@@ -100,9 +100,12 @@ void editPage() {
 Open a page's css file - creating if it don't exists.
  **/
 void css() {
-	if ((bufferUse()&7) > 0 )
-		view.goToBuffer(jEdit.openFile(view,belongingFile("css")));
-	else
+	if ((bufferUse()&7) > 0  ) {
+		String belongingFile=belongingFile("css");
+		if (belongingFile == null) 
+			return;
+		view.goToBuffer(jEdit.openFile(view,belongingFile));
+	} else
 		statMes("not a page file");
 }//}}}
 
@@ -127,9 +130,12 @@ void html() {
 Open a page's js file - creating if it don't exists.
  **/
 void js() {
-	if (bufferUse() < 8 ) 
-		view.goToBuffer(jEdit.openFile(view,belongingFile("js")));
-	else
+	if (bufferUse() < 8 ) { 
+		String belongingFile=belongingFile("js");
+		if (belongingFile == null) 
+			return;
+		view.goToBuffer(jEdit.openFile(view,belongingFile));
+	} else
 		statMes("not a page file");
 }//}}}
 
@@ -252,7 +258,8 @@ int bufferUse() {
   @return filename of css or js file of current page or pageset
   **/
 String belongingFile(String type) {
-	return  DOCROOT+type+"/"+pageBaseName()+"."+type;
+	String pageBaseName = GUIUtilities.input(view, "imd",new String[]{"edit new or existing page"},pageBaseName());
+	return  pageBaseName != null ? DOCROOT+type+"/"+ pageBaseName +"."+type : null;
 }//}}}
 
 //{{{ String defInput(String mes, String defKey, String newValue) 

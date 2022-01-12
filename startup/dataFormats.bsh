@@ -1,0 +1,390 @@
+/* :tabSize=4:indentSize=4:noTabs=false:
+ * :folding=explicit:collapseFolds=1: 
+ * The folding style is important for lookup facility of macro startup */ 
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.DocumentBuilder;
+import org.xml.sax.SAXException;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Node;
+ 
+//{{{ String tabularLines(List stringArraysList, int space)
+/**
+ * Formats data to pure tabular column align text.
+ *
+ * @param stringArraysList List of String[]
+ * @param space between columns
+ * @return String of lines of column aligned text.
+ */
+String tabularLines(List stringArraysList, int space, String delim) {
+	int[] maxColumnWidths = new int[stringArraysList.get(0).length];
+	StringBuilder lines = new StringBuilder();
+	for (String [] items : stringArraysList)
+		for (int i=0; i<items.length;i++)
+			if (maxColumnWidths[i] < items[i].length())
+				maxColumnWidths[i]= items[i].length();
+	for (String [] items : stringArraysList) { 
+		String delimCopy="";
+		for (int i=0; i<items.length;i++) {
+			lines.append(delimCopy).append(items[i]).append(new String(new char[space+maxColumnWidths[i]-items[i].length()]).replace('\0',' '));
+			delimCopy=delim;
+		}
+		lines.append("\n");
+	}
+	return lines.toString();
+} //}}}
+
+//{{{ interface List textAreaBlocksRanges(TextArea textArea, String beforeLinesPattern, String afterLinesPattern)
+/**
+ * Get list of list of line numbers in textArea (current buffer).
+ * Line blocks are surrounded by beforeLinesPattern and afterLinesPattern 
+ *
+ * @param beforeLinesPattern
+ * @param afterLinesPattern
+ * @return list of lists of line numbers in textArea of current buffer surrounded by, exclusive, lines with patterns  
+ */
+List textAreaBlocksRanges(TextArea textArea, String beforeLinesPattern, String afterLinesPattern) {
+	boolean inBlock=false;
+	List range;
+	List ranges=new ArrayList();
+	int lineCount=textArea.getLineCount();
+	for( int line=0; line < lineCount;line++) {
+		String text = textArea.getLineText(line);
+		if (inBlock) {
+			inBlock = !text.matches(afterLinesPattern);
+			if (inBlock)
+				range.add(line);
+			else
+				ranges.add(range);
+		} else {
+			inBlock = text.matches(beforeLinesPattern);
+			if (inBlock)
+				range = new ArrayList();
+		}
+	}
+	return ranges;
+} //}}}
+
+//{{{ interface List dsvLines(String fileName, String table)
+/**
+ * Transforms a block of lines in a file to a list of String[].
+ * The blocks is identified as one, potentially among several, named 'table'
+ * The chosen value (or field) delimiter is part of the pattern that identies the table.  
+ * An example: table foo consists of lines between the, not space prefixed, lines
+ * 		/***,sv,foo
+ * and
+ *		***/
+/** You could say that comma seperated values is ,sv and subsequent separated from the table name with that delimiter. 
+ * Conversion deal with removing text qualifier double quote surroundings and substitude there potential infields 
+ * occurrence as double double quote with single double quote. (the Microsoft invention)
+ * LINESHIFT IN FIELDS is not implemented.
+ *
+ * Empty lines result String [] af length of 1, having a String width a length of 0.
+ *
+ * @param fileName is the file from where the table is read
+ * @param table is the name of table to read
+ * @return List of String[] representing arrays of fields in a list of 'records'
+ */
+List  dsvLines(String fileName, String table) {
+	StringBuffer delim= new StringBuffer();
+	return Beam(Files.lines(new File(fileName).toPath()))
+		.filter(false,delim,"item-> {"+
+			"if ( arg1 == true )"+
+			"    return !item.startsWith(´***/´) ?  true : (arg1=false);"+
+			"if (true == (arg1 = item.matches(´/\\*\\*\\*.sv."+table+"´))) {"+
+			"    arg2.append(item.replaceAll(´^/\\*\\*\\*(.)sv.+´,´$1´));}"+
+			"return false; }")
+		.map(delim,"item-> {"
+			+"String[] items= item.split(arg1.toString()+´(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)´);"
+			+"for(int i=0; i < items.length; i++) "
+			+"    items[i]=items[i].trim().replaceAll(´^\"(.*)\"$´,´$1´).replace(´\"\"´,´\"´);"
+			+"return items; }")
+		.toList();	
+} //}}}
+
+//{{{ interface List  dsvLines(String fileName, String delim)
+/**
+ * As dsvLines(String fileName, String table), but read all lines from file and requires delim being specified.
+ *
+ * @param fileNameis is the file from which all lines are read
+ * @param delim is fiels seperator
+ * @return List of String[] representing arrays of fields in a list of 'records'
+ */
+List  dsvLines(String fileName, String delim) {
+	return Beam(Files.lines(new File(fileName).toPath()))
+		.map(delim,"item-> {"
+			+"String[] items= item.split(arg1 +´(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)´);"
+			+"for(int i=0; i < items.length; i++) "
+			+"    items[i]=items[i].trim().replaceAll(´^\"(.*)\"$´,´$1´).replace(´\"\"´,´\"´);"
+			+"return items; }")
+		.toList();
+} //}}}
+
+//{{{ NodeList elementsByTagName(String docString, String tName)
+/**
+ * Get list nodes all over in document
+ *
+ * @param docString is a xml document as String
+ * @param tName limits the returned nodes to those having name tname
+ * @return list of elment nodes with name tName  
+ */
+NodeList elementsByTagName(String docString, String tName) {
+	DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+	ByteArrayInputStream input = new ByteArrayInputStream(docString.getBytes("UTF-8"));
+	Document doc; 
+	try {
+		doc = dBuilder.parse(input);
+	} catch (Exception e) {
+		p("unparseable xml document:");
+		p(docString);
+		return null;
+	}
+	return doc.getElementsByTagName(tName);
+}//}}}
+
+//{{{ Map textByTagNames(String docString, List tNames)
+/**
+ * Get map of elements content or attributes. Use case:
+ *
+ *  docString = ... //xml file as String.
+ *  List le = asList("Message[id]","aCount","eCount","cost");
+ *  Map r = textByTagNames(String docString, le)
+ *  for (String e : le)
+ *  	p(e+": "+r.get(e));
+ *
+ * Two things:
+ *    The elemt names must be unique - 1 item
+ *	  Square brackets denotes attributes
+ *
+ * @param docString is an xml file content as string
+ * @param tNames denotes the list of elements
+ * @return map of elements content or attributes
+ */
+Map textByTagNames(String docString, List tNames) {
+	DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+	ByteArrayInputStream input = new ByteArrayInputStream(docString.getBytes("UTF-8"));
+	Document doc; 
+	Map retval = new HashMap();
+	try {
+		doc = dBuilder.parse(input);
+	} catch (SAXException se) {
+		retval.put("SAXException","");
+		return retval;
+	} 
+	for (String tag : tNames) {
+		String elem = tag.replaceAll("\\[.+$","");
+		String att = tag.substring(elem.length()).replaceAll("[\\[\\]]","");
+		NodeList t = doc.getElementsByTagName(elem);
+		if (t.getLength() > 1) 
+			throw new Exception("sendsms.bsh:43:element '"+tag+"' not identified as being uniq");
+		retval.put(tag, att.length() > 0 ? t.item(0).getAttribute(att) : t.item(0).getTextContent());
+	}
+	return retval;
+}//}}}
+
+//{{{ String elementName(String elemPosibleAtt)
+/**
+ * Get elementname of possible compound expression of attribute of element
+ *
+ * @param elemPosibleAtt is either 'elem' or 'elem[attribute]'
+ * @return 'elem'
+ */
+String elementName(String elemPossibleAtt) {
+	return elemPossibleAtt.replaceAll("\\[.+$","");
+}//}}}
+
+//{{{ String attributeName(String elemPossibleAtt)
+/**
+ * Get attribute of possible compound expression elem[attribute] or the empty String
+ *
+ * @param elemPossibleAtt  is either 'elem' or 'elem[attribute]'
+ * @return attribute or empty the string
+ */
+String attributeName(String elemPossibleAtt) {
+	return elemPossibleAtt.substring(elementName(elemPossibleAtt).length()).replaceAll("[\\[\\]]","");
+}//}}}
+
+//{{{ List attributes(String xmlFileName, String elemName, String[] att)
+/**
+ * List of Strings array of attributes values of specified attribute names 
+ * for all elements with specified name.
+ *
+ * @param xmlFileName of xml file
+ * @param elemName for element forming the list
+ * @param att arrau of strings of attribute names
+ * @return list af arrays of attribute values
+ */
+List attributes(String xmlFileName, String elemName, String[] att) {
+	NodeList nl = elementsByTagName(String.join("\n",readAllLines(xmlFileName)),elemName);		
+	List l = new ArrayList();
+	for (int i = 0; i < nl.getLength(); i++) {
+		Node e = nl.item(i);
+		String[] values = new String[att.length];
+		for (int ai=0; ai < att.length; ai++) 
+			values[ai] = e.getAttribute(att[ai]);
+		l.add(values);
+	}
+	return l;
+}//}}}
+
+//{{{ Node findNode(String xmlFileName, String elemName, String[][] nameValuePairs)
+/**
+ * Find first node which atttributes has the values given.
+ *
+ * e.g. findNode(...,"message",
+ *       new String[][] {new String[]{"cat","1"},new String[]{"num","2"}})
+ *
+ * will return the first node which 
+ *    - element name is message
+ *    - has a cat attribute which value is 1
+ *    - has a num attribute which value is 2
+ *
+ * @param xmlFileName of xml file
+ * @param elemName of element node
+ * @param nameValuePairs array of attribute name, attribute value string array
+ * @return Node or null if no node with all attribute values is found.
+ */
+Node findNode(String xmlFileName, String elemName, String[][] nameValuePairs) {
+	NodeList nl = elementsByTagName(String.join("\n",readAllLines(xmlFileName)),elemName);		
+	for (int i = 0; i < nl.getLength(); i++) {
+		boolean found=true;
+		for (String[] nv : nameValuePairs) {
+			if (!nl.item(i).getAttribute(nv[0]).equals(nv[1])) {
+				found=false;
+				break;
+			}
+		}
+		if (found) 
+			return nl.item(i);
+	}
+	return null;
+}//}}}
+
+//{{{ int confirm(String message, int optionType)
+/**
+ * Yes, No, cancel confirm box.
+ *
+ * @param message to ask
+ * @param optionType is one of DEFAULT_OPTION, YES_NO_OPTION, 
+ * 			YES_NO_CANCEL_OPTION or OK_CANCEL_OPTION JOptionPane field
+ * @return e.g. 0:ok, 1:no, 2:cancel
+ */
+int confirm(String message, int optionType) {
+	return
+		GUIUtilities.confirm(
+			aView()
+			,"guiutilities.confirm"
+			,new String[]{message}
+			, optionType
+			, JOptionPane.QUESTION_MESSAGE);
+}//}}}
+
+//{{{ int confirmYN(String message)
+/**
+ * Yes,no confirm box
+ *
+ * @param message to ask
+ * @return o:ok, 1:yes
+ */
+int confirmYN(String message) {
+	return confirm(message,JOptionPane.YES_NO_OPTION);
+}//}}}
+
+//{{{ int confirmYNC(String message)
+/**
+ * Yes, No, cancel confirm box.
+ *
+ * @param message to ask
+ * @return 0:ok, 1:no, 2:cancel
+ */
+int confirmYNC(String message) {
+	return confirm(message,JOptionPane.YES_NO_CANCEL_OPTION);
+}//}}}
+
+//{{{ int confirm(String title, String message, int optionType)
+/**
+ * Yes, No, cancel confirm box.
+ *
+ * @param title of the input box
+ * @param message to ask
+ * @param optionType is one of DEFAULT_OPTION, YES_NO_OPTION, 
+ * 			YES_NO_CANCEL_OPTION or OK_CANCEL_OPTION JOptionPane field
+ * @return eg. 0:ok, 1:no, 2:cancel
+ */
+int confirm(String title,String message, int optionType) {
+	jEdit.setProperty("guiutilities.confirm.custom.title",title);
+	return 
+		GUIUtilities.confirm(
+			aView()
+			, "guiutilities.confirm.custom"
+			, new String[]{message}
+			, optionType
+			, JOptionPane.QUESTION_MESSAGE); 
+}//}}}
+
+//{{{ int confirmYN(String title, String message)
+/**
+ * Yes, No confirm box.
+ *
+ * @param title of the input box
+ * @param message to ask
+ * @return 0:ok, 1:no
+ */
+int confirmYN(String title,String message) {
+	return confirm(title,message,JOptionPane.YES_NO_OPTION);
+}//}}}
+
+//{{{ int confirmYNC(String title, String message)
+/**
+ * Yes, No, cancel confirm box.
+ *
+ * @param title of the input box
+ * @param message to ask
+ * @return 0:ok, 1:no, 2:cancel
+ */
+int confirmYNC(String title,String message) {
+	return confirm(title,message,JOptionPane.YES_NO_CANCEL_OPTION);
+}//}}}
+
+//{{{ String input(String returnStr, String deflt)
+/**
+ * Input frame to get a single string
+ *
+ * @param returnStr Description of the wanted value
+ * @param deflt default value
+ * @return the input frames textbox content or null on cancel
+ */
+String input(String returnStr, String deflt) {
+	return GUIUtilities.input(aView(),"guiutilities.input",new String[]{returnStr},deflt);
+}//}}}
+
+//{{{ String input(String returnStr)
+/**
+ * Input frame to get a single string 
+ *
+ * @param returnStr Description of the wanted value
+ * @return the input frames textbox content or null on cancel
+ */
+String input(String returnStr) {
+	return GUIUtilities.input(aView(),"guiutilities.input",new String[]{returnStr},"");
+}//}}}
+
+//{{{ String inputAssistedProperty(String prop, String mesOnNull)
+/**
+ * Getting property value, asking for it value if it don't exist
+ *
+ * @param prop to hold a value
+ * @param mesOnNull descripes the data being asked for
+ * @return value of property
+ */
+String inputAssistedProperty(String prop, String mesOnNull) {
+	String retval = jEdit.getProperty(prop);
+	if (retval==null) {
+		retval = input(mesOnNull);
+		jEdit.setProperty(prop,retval);
+	}
+	return retval;
+}//}}}
+

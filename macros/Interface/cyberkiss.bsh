@@ -30,6 +30,7 @@ void cyberkiss() {
 			,"en.wiki"
 			,"da.wiki"
 			,"thesaurus"
+			,"bropages"
         		    }));
         switch (extOrUntitled(buffer.getName())) {
         
@@ -62,18 +63,26 @@ void cyberkiss() {
             break;
         case "css":
             menuItems.addAll(asList(
-                "css"));
+                "css"
+               ,"html tag"
+               ));
             break;
         case "php":
             menuItems.addAll(asList(
                  "php function"
                 ,"php class"
              	,"php add keyword"
+             	,"html tag"
                 ));
             break;
         case "py":
             menuItems.addAll(asList(
                 "python keyword"
+                ));
+            break;
+        case "js":
+            menuItems.addAll(asList(
+                "jquery api"
                 ));
             break;
         
@@ -132,6 +141,9 @@ void presentSelection(List menues, String kiss) {
 				else
 					stamMes(kiss+" ?" );
 				break;
+			case "jquery api":
+				browseThat("https://api.jquery.com/"+kiss+"/");
+				break;
 			case "duckduckgo":
 				browseThat("https://duckduckgo.com/?q="+URLEncoder.encode(kiss,"utf-8"));
 				break;
@@ -144,6 +156,9 @@ void presentSelection(List menues, String kiss) {
 			case "php class":
 			    //browseThat("https://www.php.net/manual/en/class."+kiss.replace("_","-")+".php");
 				browseThat("https://www.php.net/manual/en/class."+kiss); //+".php");
+				break;
+			case "html tag":
+				browseThat("https://www.w3schools.com/tags/tag_"+kiss+".asp");
 				break;
 			case "php add keyword":
 				view.goToBuffer(jEdit.openFile(view,"/home/bvirk/.jedit/modes/php.xml"));
@@ -170,6 +185,9 @@ void presentSelection(List menues, String kiss) {
 				break;
 			case "en.wiki":
 				browseThat("https://duckduckgo.com/?q=site%3Aen.wikipedia.org+"+URLEncoder.encode(kiss,"utf-8"));
+				break;
+			case "bropages":
+				browseThat("http://bropages.org/"+kiss);
 				break;
 			case "da.wiki":
 				browseThat("https://duckduckgo.com/?q=site%3Ada.wikipedia.org+"+URLEncoder.encode(kiss,"utf-8"));

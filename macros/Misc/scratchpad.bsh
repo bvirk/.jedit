@@ -1,7 +1,7 @@
 cls(base32RndStr(14));
 
 //p(actionNames("[M].+"));
-//p(matchesjEditProps("cyber.+"));
+//p(matchesjEditProps("gui.+"));
 //p(matchesSysProps(".*tmp.*"));
 //p(mEval("angle=36;height=1.3;2*height*tan(pi*angle/2/180)"));
 //p(sourcedFunctions());
@@ -11,9 +11,3 @@ cls(base32RndStr(14));
 //p(dotExt());
 //view.splitVertically();view.unsplitCurrent();
 
-void foo() {  
- 	blockingCurBufSaver(this,buffer);
-	void main() { p("I am foo->main"); }
-}
-foo(); 
- 

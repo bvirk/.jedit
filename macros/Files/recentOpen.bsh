@@ -1,0 +1,22 @@
+void recentFilesDialog() {
+	void command(String choice) {
+		view.goToBuffer(jEdit.openFile(view,files.get(choice)));
+		//Buffer b = view.getBuffer();
+		//b.toggleLocked(view);
+	}
+	List l = new ArrayList();
+	HashMap files = new HashMap();
+	int maxIntries=25;
+	for (org.gjt.sp.jedit.BufferHistory.Entry be : new org.gjt.sp.jedit.BufferHistory().getHistory()) { 
+		String file = basename(be.path);
+		files.put(file,be.path);
+		l.add(file);
+		if (--maxIntries == 0)
+			break;
+	}
+	if (l.size() > 0)
+		actionsDialogGUI(this,NumSeq(l,"Recent Files"));
+	else
+		p("no Recent files");
+}
+recentFilesDialog();

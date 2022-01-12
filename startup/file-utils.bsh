@@ -245,10 +245,10 @@ List  fileLines(String fileName, String startPattern, String endPattern) {
 		.toList();	
 } //}}}
 
-//{{{ ist  dddPrefixedFileLines(String fileName, String startPattern, String endPattern)
+//{{{ List  dddPrefixedFileLines(String fileName, String startPattern, String endPattern)
  /**
   * Lines of pattern delimited block. Each line is prefixed a 3 digit fortrunning 
-  * number after being fetched. The pattern lines is not inclusive the block 
+  * number after being fetched. The pattern lines is not inclusive the block surrounding
   * @param fileName with lines
   * @param startPattern matches the line before returned line 0
   * @param endPattern matches the line after last line in returned list
@@ -294,6 +294,23 @@ List fileLines(String fileName, String blockId) {
 String fileLinesString(String fileName, String blockId) {
     return String.join("\n",toArray(fileLines(fileName,blockId)));
 } //}}}
+
+//{{{ Hashtable fileLinesHashTable(String fileName, String blockId)
+/**
+ * HashTabel (which subset is interface Map) of lines in block.
+ * A list of its keys can be obtained by:
+ *		Map m=fileLinesHashTable(...
+ * 		List l = new ArrayList(m.keySet());
+ *
+ * @param fileName of file having a block of properties format key,value pairs
+ * @param blockId is the charaters between end of line and the leading '/***' of the line before the block 
+ * @return HashTable of key,value pairs 
+ */
+Hashtable fileLinesHashTable(String fileName, String blockId) {
+	Properties prop = new Properties();
+	prop.load(new StringReader(fileLinesString(fileName,blockId)));
+	return prop;
+}//}}}
 
 //{{{ List startupBeanshellFilesLines()
 /**
@@ -395,4 +412,17 @@ void walkFileTree(File dir, XThis visitor, int maxDepth) {
 void walkFileTree(File dir, XThis visitor) {
 	walkFileTree(dir, visitor,-1);
 } //}}}
+
+//{{{ Properties propsFromFile(String fileName)
+/**
+ * Properties read from file using Charset.defaultCharset() (UTF8 on linux)
+ *
+ * @param fileName
+ * @return Properties (which enherits from HasTable)
+ */
+Properties propsFromFile(String fileName) {
+	Properties prop = new Properties();
+	prop.load(new FileReader(fileName));
+	return prop;
+}//}}}
 

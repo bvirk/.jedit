@@ -1,0 +1,20 @@
+
+/**
+ * add index after comment in snippets segmented markdown.
+ *
+ * @param startPatt is what precedes where comment indicies shall be added or replaced
+ */
+void addCommentIndexes(String startPatt) {
+	int lineCnt = textArea.getLineCount();
+	int si=1;
+	int pattLen = startPatt.length();
+	for(int i=0; i<lineCnt; i++) {
+		if (textArea.getLineText(i).startsWith(startPatt)) {
+			int insPlace=textArea.getLineStartOffset(i)+pattLen;
+			textArea.setCaretPosition(insPlace);
+			textArea.deleteToEndOfLine();
+			buffer.insert(insPlace," //"+si++);
+		}
+	}
+}
+addCommentIndexes("EOMD,");

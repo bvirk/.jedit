@@ -23,7 +23,7 @@ scm;_scheme												=runScheme
 php;<html><b><u>Php<u></b></html>
 php;p_hp												=runPhp
 php;re_motephp											=runRemotePhp
-bsh.php.md.css;_imd									=imdDialog
+bsh.php.md.css;_ipa										=ipaDialog
 *///
 
 //{{{ void actionsDialog(String suffix)
@@ -71,8 +71,8 @@ void actionsDialog(String suffix) {
 			case "runMake":
 			    runInConsoleSystem("make && make run",true);
 			    break;
-			case "imdDialog":
-				Macros.runScript(view,jEdit.getSettingsDirectory()+"/macros/Interface/imdDialog.bsh",true);
+			case "ipaDialog":
+				Macros.runScript(view,jEdit.getSettingsDirectory()+"/macros/Interface/ipaDialog.bsh",true);
 			    break;
 			case "runScheme":
 				runInConsoleSystem("s9 "+buffer.getPath(),false);

@@ -1,14 +1,9 @@
 
 void bufferListWithRecent() {
 	String nameFirst(String pathName) {
-		return savedE + basename(pathName)+" ("+dirname(pathName)+"/)";
-	}
-	String nameFirst(Buffer b) {
-		String pathName=b.getPath();
-		return (b.isDirty() ? dirtE:savedE) + basename(pathName)+" ("+dirname(pathName)+"/)";
+		return basename(pathName)+" ("+dirname(pathName)+"/)";
 	}
 	void openFile(String choice) {
-		choice = choice.substring(7);
 		String basename = choice.replaceAll(" \\(.+$","");
 		view.goToBuffer(jEdit.openFile(view,choice.substring(basename.length()+2,choice.length()-1)+basename));
 	}
@@ -44,19 +39,16 @@ void bufferListWithRecent() {
 				openFile(choice);
 		}
 		for (Buffer b : jEdit.getBuffers()) {
-			l.add(nameFirst(b));
+			l.add(nameFirst(b.getPath()));
 			if (--maxIntries == 0)
 				break;
 		}
 		
 		Collections.sort(l);
-		l.add(0,"Recent Files");
+		l.add("Recent Files");
 		actionsDialogGUI(this,NumSeq(l,"Buffer list"));
 	}
 	List l = new ArrayList();
-	String dirtE=  "&#215; ";
-	String savedE = "&#160; ";
-	int realFilePos = savedE.length();
 	int maxIntries=35;
 	filesInBufferDialog();
 }

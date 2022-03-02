@@ -53,7 +53,7 @@ A command in use, has two snippets:
 Commands is removed by deleting corresponding php file
  **/
 void addCommand() {
-	String className = capitalized(GUIUtilities.input(view, "imd",new String[]{"new command"},""));
+	String className = capitalized(GUIUtilities.input(view, "ipa",new String[]{"new command"},""));
 	savePhpIfNotExists(className,"commands", "CommandsBase","CommandsFuncs");
 	view.goToBuffer(jEdit.openFile(view,DOCROOT+COMMANDS+className+".php"));
 }//}}} 
@@ -66,9 +66,18 @@ When adding a subpage, page and page/index is automatically made if they didn't 
  **/
 void editPage() {
 	cls("");
-	String pageName = GUIUtilities.input(view, "imd",new String[]{"edit new or existing page"},"");
+	int bufferUse = bufferUse();
+	String defPage = bufferUse == 4
+		? basename(buffer.getPath().replaceAll("/[^/]+$",""))+"/"
+		: (bufferUse < 4
+			? basename(buffer.getName(),true)+"/"
+			:"");
+		
+	String pageName = GUIUtilities.input(view, "ipa",new String[]{"edit new or existing page"},defPage.toLowerCase());
 	int sPos=pageName.indexOf("/");
-	String curBufDirSlash = (bufferUse() < 8 ) && (sPos == -1) ? dirname()+"/" : DOCROOT+PAGESSETS;
+	String curBufDirSlash = (bufferUse() < 8 ) && (sPos == -1) 
+		? dirname()+"/" 
+		: DOCROOT+PAGESSETS;
 	boolean isMDPage = curBufDirSlash.length()>SITEPAGESSTARTPOS || sPos > 0;
 	String className = sPos > 0 
 		? capitalized(pageName.substring(0,sPos))
@@ -83,7 +92,7 @@ void editPage() {
 	p("className      "+className     );
 	p("isMDPage       "+isMDPage      );
 	p("fileToOpen     "+fileToOpen    );
-	
+	p("bufferUse	  "+bufferUse     );
 	if (isMDPage) {
 		if (sPos > 0) {
 			
@@ -95,56 +104,12 @@ void editPage() {
 	view.goToBuffer(jEdit.openFile(view,fileToOpen));
 }//}}}
 
-//{{{ void css()
-/**
-Open a page's css file - creating if it don't exists.
- **/
-void css() {
-	if ((bufferUse()&7) > 0  ) {
-		String belongingFile=belongingFile("css");
-		if (belongingFile == null) 
-			return;
-		view.goToBuffer(jEdit.openFile(view,belongingFile));
-	} else
-		statMes("not a page file");
-}//}}}
-
-//{{{ void cssCommon()
-/**
-Open <docroot>/css/common.css
- **/
-void cssCommon() {
-	view.goToBuffer(jEdit.openFile(view,DOCROOT+"css/common.css"));
-}//}}}
-
 //{{{ void html()
 /**
 Pretty printing html response. Useable for markdown learning too.
  **/
 void html() {
-	openSource("html");
-}//}}}
-
-//{{{ void js()
-/**
-Open a page's js file - creating if it don't exists.
- **/
-void js() {
-	if (bufferUse() < 8 ) { 
-		String belongingFile=belongingFile("js");
-		if (belongingFile == null) 
-			return;
-		view.goToBuffer(jEdit.openFile(view,belongingFile));
-	} else
-		statMes("not a page file");
-}//}}}
-
-//{{{ void jsCommon()
-/**
-Open <docroot>/js/common.js
- **/
-void jsCommon() {
-	view.goToBuffer(jEdit.openFile(view,DOCROOT+"js/common.js"));
+	showSource("html");
 }//}}}
 
 //{{{ void play()
@@ -153,29 +118,6 @@ Playroom for testing php code
  **/
 void play() {
 	printCommandOutput(curlCommand("play"));
-}//}}}
-
-//{{{ void rm()
-/**
-Remove whole pageset - in other words a page and all its subpages.
-The pages or one of its subpages must be current buffer, for the invoking the deletion
-For delete just a subpage - remove the file
- **/
-void rm() {
-	int bUse=bufferUse();
-	if (bUse>4) {
-		statMes("no page");
-		return;
-	}
-	String mes ="Delete\n\n"+ String.join("\n",curlCommand("tree "+pageBaseName()));
-	if (GUIUtilities.confirm(view, "imd",new String[]{mes},JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE)==2)
-		return;
-	if (bUse >1) {  
-		for(File f: new File(DOCROOT+PAGESSETS+pageBaseName()).listFiles())
-			f.delete();
-		new File(DOCROOT+PAGESSETS+pageBaseName()).delete();
-	}
-	new File(DOCROOT+PAGESSETS+capitalized(pageBaseName())+".php").delete();	
 }//}}}
 
 //{{{ void showLog()
@@ -191,38 +133,11 @@ void showLog() {
 		p("The log file "+ lf.getPath() + " don't exists");
 }//}}}
 
-//{{{ void text()
-/**
-Show source of page response, but without pretty printing the html. Use this
-for analizing when it is not html that is produced.
- **/
-void text() {
-	openSource("text");
-}//}}}
-
-//{{{ void tree()
-/**
-Tree view of pageset or whole site when no page is in context. 
- **/
-void tree() {
-	printCommandOutput(curlCommand((bufferUse()&7)>0 ? "tree "+ pageBaseName() : "tree"));
-}//}}}
-
-//{{{ void usage()
-/**
-Context of current buffer in imd use.
- **/
-void usage() {
-	//cls(0);
-	statMes(usageText(bufferUse()));
-	//bufferUse();
-}//}}}
-
 
 /* *********** UTILITY FUNCTIONS *****************/
 //{{{ int bufferUse()
 /**
-  Current buffer use in imd relation
+  Current buffer use in ipa relation
   
   @return one of PAGEALONE,PAGEHAVINGMD,MDPAGE,COMMAND,NOTDRYPET or FEJL40
   **/
@@ -251,30 +166,19 @@ int bufferUse() {
 	
 }//}}}
 
-//{{{ String belongingFile(String type)
-/**
-  filename of css or js file
-  @param one of "js" or "css"
-  @return filename of css or js file of current page or pageset
-  **/
-String belongingFile(String type) {
-	String pageBaseName = GUIUtilities.input(view, "imd",new String[]{"edit new or existing page"},pageBaseName());
-	return  pageBaseName != null ? DOCROOT+type+"/"+ pageBaseName +"."+type : null;
-}//}}}
-
 //{{{ String defInput(String mes, String defKey, String newValue) 
 /**
   input from box, with default value from previous input, overideable with new value
   @param mes states the answer to reply
   @param defKey is the jEdit property the answer is saved as too. 
-  @param newValue overrides previous property content.
+  @param newValue overrides previous property content if value != null
   @return the reply to the answer
   **/
 String defInput(String mes, String defKey, String newValue) {
-	String fullDef = "imd.input."+defKey;
+	String fullDef = "ipa.input."+defKey;
 		if (newValue != null)
 			jEdit.setProperty(fullDef,newValue);
-	String di = GUIUtilities.input(view, "imd",new String[]{mes},jEdit.getProperty(fullDef,""));
+	String di = GUIUtilities.input(view, "ipa",new String[]{mes},jEdit.getProperty(fullDef,""));
 	if (di != null)
 		jEdit.setProperty(fullDef,di);
 	return di;
@@ -294,15 +198,16 @@ boolean hasPHPErrors(List l) {
 	return false;
 }//}}}
 
-//{{{ void openSource(String langType)
+//{{{ void showSource(String langType)
 /**
-  Requests url prints response. Some rudimentary Php Error detection invokes jEdit plugin 
+  Print in console the html source of a page  
+  Some rudimentary Php Error detection invokes jEdit plugin 
   ErrorList. Errors inside a html document is not caught.
   This methos could be improved to better detect php error, warnings and notices.
   
   @param langType must be one of "text" or "html". "html" pretty prints.
   **/
-void openSource(String langType) {
+void showSource(String langType) {
 	XThis errorListCtl = phpToErrorList(); 
 	
 	String pageToReq = pageUrl();
@@ -318,18 +223,6 @@ void openSource(String langType) {
 	String respStr=String.join("\n",resp);
 	p(langType.equals("html") ? Jsoup.parse(respStr).html() : respStr);
 	view.goToBuffer(buffer);
-}//}}}
-
-//{{{ String pageBaseName() 
-/**
-  basename of page or one of pages in pageset
-
-  @return what is before first slash in url if any. It is the same as php Classname
-  for page or pageset - but with leading lowercase character.
-  
-  **/
-String pageBaseName() {
-	return dirname(pageUrl());
 }//}}}
 
 //{{{ String pageUrl() 
@@ -403,7 +296,7 @@ boolean hasErrors(List lines) {
 
 //{{{ void printCommandOutput(List lines)
 /**
-  Print lines being the response of a curl request. Used in commands tree and play.
+  Print lines being the response of a curl request. Used in command play.
   Some error detection.
   @param lines is response outputted from curl.
   **/
@@ -436,9 +329,9 @@ void savePhpIfNotExists(String className, String dir, String baseClassName, Stri
 		+className
 		+" extends "+ baseClassName+" {\n"
 		+ (use != null ? "\tuse "+use+";" : "")
-		+"\t//protected $title='';\n"
-		+"\t//protected $useFocusReload=true;\n"
-		+"\t//protected $useJquery=true;\n"
+		+"\t//protected $jsFiles = [];\n"
+		+"\t//protected $cssFiles = [];\n"
+		+"\t//protected $jsAsMethods = [];\n"
 		+"\n}";
 	//p(fileContent);
 	if (!new File(fileN).exists())
@@ -460,21 +353,8 @@ void saveMdIfNotExixsting(String fileName) {
 	toFile(fileName,"<?php return [ // >>>\n\t<<<EOMD\npage "+basename(fileName,true)+"\nEOMD];");
 }//}}}
 
-//{{{ String usageText(int num)
 /**
-  Used to shows the imd use of current buffer.
-  @param statusnumber of current buffer  
-  @return Textual status.	  
-  **/
-String usageText(int statusNumber) {
-	return ust.get(statusNumber);
-}//}}}
-
-
-
-
-/**
- * Dialog for administation a php microframework called imd.
+ * Dialog for administation a php microframework called ipa.
  * Beaupet is php 7.3 framework running under apache.
  * 
  * The webserver filesystem must be locally available. 
@@ -502,28 +382,12 @@ void remoteCmdsActionsDialog(String docroot, String server) {
 			addCommand(); break;
 		case "edit-page" :
 			editPage(); break;
-		case "css" :
-			css(); break;
-		case "css-common":
-			cssCommon(); break;
 		case "html":
 			html(); break;
-		case "js" :
-			js(); break;
-		case "js-common":
-			jsCommon(); break;
 		case "play":
 			play(); break;
-		case "rm":
-			rm(); break;
 		case "showLog":
 			showLog(); break;
-		case "text":
-			text(); break;
-		case "tree":
-			tree(); break;
-		case "usage":
-			usage(); break;
 		default:
 			statMes(choice+" not implementet yet");
 		}
@@ -552,7 +416,7 @@ void remoteCmdsActionsDialog(String docroot, String server) {
 		Arrays.sort(arr);
 		
 		final String keyLatestActionLetter = "options.actionthatbuffernumber";
-		actionsDialogGUI(this,NumSeq(Arrays.asList(arr),"imd command",jEdit.getIntegerProperty(keyLatestActionLetter)));
+		actionsDialogGUI(this,NumSeq(Arrays.asList(arr),"ipa command",jEdit.getIntegerProperty(keyLatestActionLetter)));
 	//}
 	
 }
@@ -562,9 +426,9 @@ smain() {
 	void main() {
 		remoteCmdsActionsDialog(
 			OperatingSystem.isWindows() 
-				? "d:/var/www/domain/imd"
-				: "/var/www/domain/imd"
-			,jEdit.getProperty("imd.serverurl"));
+				? "d:/var/www/ipa/domain"
+				: "/var/www/ipa/domain"
+			,jEdit.getProperty("ipa.serverurl"));
 	}
 }
 smain();

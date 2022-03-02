@@ -6,14 +6,17 @@ import org.w3c.dom.Node;
 void textContent(String xmlFile, String elemName, String[] fields, Map nice) {
 	void command(String timerecip) {
 		timeEnqueuedVal = timerecip.substring(0,field0len);
-		Node choice = findNode(xmlFile,elemName, new String[][] {new String[]{"timeEnqueued",timeEnqueuedVal}});
+		Node choice = doc.findNode(elemName, new String[][] {new String[]{"timeEnqueued",timeEnqueuedVal}});
 		p("recipient: " +nice.get(choice.getAttribute("singleRecipient")));
 		p(choice.getTextContent());
 	}
 	List l = new ArrayList(); 
 	int field0len;
 	
-	Node latest = findNode(xmlFile,elemName,new String[][]{});
+	XThis doc;
+	Node latest = (doc=jDOM(xmlFile)).findNode(xmlFile,elemName,new String[][]{});
+	//Node latest = findNode(xmlFile,elemName,new String[][]{});
+
 	if (confirmYN("Sidste gemte sms er \n"
 		+latest.getAttribute("timeEnqueued").replaceAll("(\\d)T(\\d)","$1 klokken: $2").replaceAll(":\\d\\dZ$","")
 		+"\nØnskes listen af sms'er hentet igen")==0 /*yes*/) {
@@ -23,7 +26,7 @@ void textContent(String xmlFile, String elemName, String[] fields, Map nice) {
 		String deliverDoc = String.join("\n",stdOut("curl -u "+ auth +" "+svr+"/messages"));
 		toFile(xmlFile,deliverDoc);
 	}
-	for (String[] att: attributes(xmlFile,elemName,fields)) {
+	for (String[] att: doc.attributes(elemName,fields)) {
 		field0len = att[0].length();
 		l.add(att[0]+" "+nice.get(att[1]));
 	}

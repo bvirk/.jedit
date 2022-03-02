@@ -75,7 +75,7 @@ void runPhp() {
 
 //{{{ void actionsDialogGUI(XThis callBack, XThis menuSeq)
 /**
- * JLabels grid to recieve key character invoked choice. Used by macro actionsDialog, cyberkiss and imdDialog
+ * JLabels grid to recieve key character invoked choice. Used by macro actionsDialog, cyberkiss and ipaDialog
  *
  * @param callBack for return choice to caller from within keyTyped handler 
  * @param menuSeq to read labels, shortcut keys and default actions from. 

@@ -120,6 +120,72 @@ List  dsvLines(String fileName, String delim) {
 		.toList();
 } //}}}
 
+//{{{ XThis jDOM(String docString )
+/**
+ * DOM Object
+ *
+ * @param file of source xml
+ * @return object
+ */
+XThis jDOM(File file) {
+	return jDOM(String.join("\n",readAllLines(file)));
+}
+		
+XThis jDOM(String xmlStr) {
+	NodeList elementsByTagName(String tName) {
+		return doc.getElementsByTagName(tName);
+	}
+	Map textByTagNames(List tNames) {
+		Map retval = new HashMap();
+		for (String tag : tNames) {
+			String elem = tag.replaceAll("\\[.+$","");
+			String att = tag.substring(elem.length()).replaceAll("[\\[\\]]","");
+			NodeList t = doc.getElementsByTagName(elem);
+			if (t.getLength() > 1) 
+				throw new Exception("sendsms.bsh:43:element '"+tag+"' not identified as being uniq");
+			retval.put(tag, att.length() > 0 ? t.item(0).getAttribute(att) : t.item(0).getTextContent());
+		}
+		return retval;
+	}
+	List attributes(String elemName, String[] att) {
+		NodeList nl = elementsByTagName(elemName);		
+		List l = new ArrayList();
+		for (int i = 0; i < nl.getLength(); i++) {
+			Node e = nl.item(i);
+			String[] values = new String[att.length];
+			for (int ai=0; ai < att.length; ai++) 
+				values[ai] = e.getAttribute(att[ai]);
+			l.add(values);
+		}
+		return l;
+	}
+	Node findNode(String elemName, String[][] nameValuePairs) {
+		NodeList nl = elementsByTagName(elemName);		
+		for (int i = 0; i < nl.getLength(); i++) {
+			boolean found=true;
+			for (String[] nv : nameValuePairs) {
+				if (!nl.item(i).getAttribute(nv[0]).equals(nv[1])) {
+					found=false;
+					break;
+				}
+			}
+			if (found) 
+				return nl.item(i);
+		}
+		return null;
+	}
+	DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+	ByteArrayInputStream input = new ByteArrayInputStream(xmlStr.getBytes("UTF-8"));
+	Document doc; 
+	try {
+		doc = dBuilder.parse(input);
+	} catch (SAXException se) {
+		throw new Exception("dataFormats:183:xml Parse error");
+	}
+	return this;
+}//}}}
+
 //{{{ NodeList elementsByTagName(String docString, String tName)
 /**
  * Get list nodes all over in document
@@ -129,18 +195,7 @@ List  dsvLines(String fileName, String delim) {
  * @return list of elment nodes with name tName  
  */
 NodeList elementsByTagName(String docString, String tName) {
-	DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-	ByteArrayInputStream input = new ByteArrayInputStream(docString.getBytes("UTF-8"));
-	Document doc; 
-	try {
-		doc = dBuilder.parse(input);
-	} catch (Exception e) {
-		p("unparseable xml document:");
-		p(docString);
-		return null;
-	}
-	return doc.getElementsByTagName(tName);
+	return jDOM(docString).elementsByTagName(tName);
 }//}}}
 
 //{{{ Map textByTagNames(String docString, List tNames)
@@ -162,26 +217,7 @@ NodeList elementsByTagName(String docString, String tName) {
  * @return map of elements content or attributes
  */
 Map textByTagNames(String docString, List tNames) {
-	DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-	ByteArrayInputStream input = new ByteArrayInputStream(docString.getBytes("UTF-8"));
-	Document doc; 
-	Map retval = new HashMap();
-	try {
-		doc = dBuilder.parse(input);
-	} catch (SAXException se) {
-		retval.put("SAXException","");
-		return retval;
-	} 
-	for (String tag : tNames) {
-		String elem = tag.replaceAll("\\[.+$","");
-		String att = tag.substring(elem.length()).replaceAll("[\\[\\]]","");
-		NodeList t = doc.getElementsByTagName(elem);
-		if (t.getLength() > 1) 
-			throw new Exception("sendsms.bsh:43:element '"+tag+"' not identified as being uniq");
-		retval.put(tag, att.length() > 0 ? t.item(0).getAttribute(att) : t.item(0).getTextContent());
-	}
-	return retval;
+	return jDOM(docString).textByTagNames(tNames);
 }//}}}
 
 //{{{ String elementName(String elemPosibleAtt)
@@ -217,16 +253,7 @@ String attributeName(String elemPossibleAtt) {
  * @return list af arrays of attribute values
  */
 List attributes(String xmlFileName, String elemName, String[] att) {
-	NodeList nl = elementsByTagName(String.join("\n",readAllLines(xmlFileName)),elemName);		
-	List l = new ArrayList();
-	for (int i = 0; i < nl.getLength(); i++) {
-		Node e = nl.item(i);
-		String[] values = new String[att.length];
-		for (int ai=0; ai < att.length; ai++) 
-			values[ai] = e.getAttribute(att[ai]);
-		l.add(values);
-	}
-	return l;
+	return jDOM(xmlFileName).attributes(elemName, att);
 }//}}}
 
 //{{{ Node findNode(String xmlFileName, String elemName, String[][] nameValuePairs)
@@ -247,19 +274,7 @@ List attributes(String xmlFileName, String elemName, String[] att) {
  * @return Node or null if no node with all attribute values is found.
  */
 Node findNode(String xmlFileName, String elemName, String[][] nameValuePairs) {
-	NodeList nl = elementsByTagName(String.join("\n",readAllLines(xmlFileName)),elemName);		
-	for (int i = 0; i < nl.getLength(); i++) {
-		boolean found=true;
-		for (String[] nv : nameValuePairs) {
-			if (!nl.item(i).getAttribute(nv[0]).equals(nv[1])) {
-				found=false;
-				break;
-			}
-		}
-		if (found) 
-			return nl.item(i);
-	}
-	return null;
+	return jDOM(xmlFileName).findNode(elemName, nameValuePairs);
 }//}}}
 
 //{{{ int confirm(String message, int optionType)

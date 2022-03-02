@@ -2,6 +2,7 @@
 // key tip: S+F10
 // BROWSER TYPE AND INSTALLATION PLACE DEPENDT -LOOK AT void browseThat(String url)
 import java.util.stream.Collectors;
+List words;
 /**
  * Package name importer, Api and startup function help and cyberkisses. Place carret 
  * in front of, or select word(s) to be used. If carret is after a space clipboard 
@@ -11,17 +12,18 @@ import java.util.stream.Collectors;
  * This function and meant to be edited together with presentSelection for sending
  * stupid requests of, in terms of sending dialog resources, simple art.  
  */
-void cyberkiss() {
+void cyberkiss(String editmode) {
 	String extOrUntitled(String fileName) {
 		String fn = dotExt(fileName);
-		return fn.length() > 0 ? fn : basename(fileName).replaceAll("-\\d+$","");
+		return editmode != null ? editmode : (fn.length() > 0 ? fn : basename(fileName).replaceAll("-\\d+$",""));
 	}
-	String text;
-	List words = backWordsOrSelected(true);
+	if (editmode == null) 
+		words = backWordsOrSelected(true);
+
 	if (words.get(0).endsWith(" ") || words.get(0).length()==0)
-		text=getClipboard();
-	else
-		text = words.get(1);
+		words = asList("n/a",getClipboard());
+	String text = words.get(1);	
+	
 	if (null != text) {
 	    List menuItems = new ArrayList (Arrays.asList(new String[]{
 	    	 "duckduckgo"
@@ -31,7 +33,10 @@ void cyberkiss() {
 			,"da.wiki"
 			,"thesaurus"
 			,"bropages"
+			,"switch editmode"
         		    }));
+        //if (words.size() > 2 && words.get(2).length() == 3 && words.get(2).matches("[a-z]+") )
+        //	menuItems.add("editmode "+words.get(2));
         switch (extOrUntitled(buffer.getName())) {
         
 		case "java":
@@ -63,8 +68,9 @@ void cyberkiss() {
             break;
         case "css":
             menuItems.addAll(asList(
-                "css"
+                "css property"
                ,"html tag"
+               ,"css concepts"  
                ));
             break;
         case "php":
@@ -102,100 +108,128 @@ void presentSelection(List menues, String kiss) {
 	command(String choice) {
 		//p("in switch, choice="+choice);
 	    switch (choice) {
-		    
-			case "import":
-				doImport(kiss);
-				break;
-			case "api-help":
-				apiHelp(kiss);
-				break;
-			case "eval beanshell":
-			    BeanShell.eval(view,BeanShell.getNameSpace(),"p("+kiss+");");
-			    break;
-			case "beanshell source":
-				if (!foundStartupFunction(kiss))
-					statMes(funcName+" ?");
-				//else
-					//p(buffer.getName());
-				break;
-			case "java keyword":
-				url = javaKeywordUrl(kiss);
-				if (url.size() > 1)
-					if (url.size() == 2) 
-						browseThat(url.get(0));
-					else {
-						actionsDialogGUI(this,numSeqSplitLast(url));
-					}
-				else
-					statMes(kiss+" ?" );
-				break;
-			case "python keyword":
-				url = pythonWordUrl(kiss);
-				p("python url="+url);
-				if (url.size() > 1)
-					if (url.size() == 2) 
-						browseThat(url.get(0));
-					else {
-						actionsDialogGUI(this,numSeqSplitLast(url));
-					}
-				else
-					stamMes(kiss+" ?" );
-				break;
-			case "jquery api":
-				browseThat("https://api.jquery.com/"+kiss+"/");
-				break;
-			case "duckduckgo":
-				browseThat("https://duckduckgo.com/?q="+URLEncoder.encode(kiss,"utf-8"));
-				break;
-			case "php function":
-				browseThat("https://www.php.net/manual/en/function."+kiss.replace("_","-")+".php");
-				break;
-			case "css":
-				browseThat("https://developer.mozilla.org/en-US/docs/Web/CSS/"+kiss);
-				break;
-			case "php class":
-			    //browseThat("https://www.php.net/manual/en/class."+kiss.replace("_","-")+".php");
-				browseThat("https://www.php.net/manual/en/class."+kiss); //+".php");
-				break;
-			case "html tag":
-				browseThat("https://www.w3schools.com/tags/tag_"+kiss+".asp");
-				break;
-			case "php add keyword":
-				view.goToBuffer(jEdit.openFile(view,"/home/bvirk/.jedit/modes/php.xml"));
-				break;
-			case "findrute":
-				String[] words = kiss.trim().replaceAll(" {2,}"," ").replaceAll(","," ").split(" "); 
-				browseThat("https://www.google.com/maps/dir/"+words[0]+"+"+words[1]+","+words[2]+"/"+words[3]+"+"+words[4]+","+words[5]);
-				break;
-			case "findvej":
-				String[] words = (kiss.trim().replaceAll("  +"," ")+" ").split(" ",3); 
-				browseThat("https://www.google.com/maps/place/"+words[0]+"+"+words[1]+words[2]);
-				break;
-			case "phone":
-				browseThat("https://118.dk/search/go?what="+kiss);
-				break;
-			case "cvr":
-				browseThat("https://datacvr.virk.dk/data/visenhed?enhedstype=virksomhed&id="+kiss+"&soeg="+kiss+"&language=da");
-				break;
-			case "en-da":
-				browseThat("https://en.glosbe.com/en/da/"+URLEncoder.encode(kiss,"utf-8"));
-				break;
-			case "da-en":
-				browseThat("https://da.glosbe.com/da/en/"+URLEncoder.encode(kiss,"utf-8"));
-				break;
-			case "en.wiki":
-				browseThat("https://duckduckgo.com/?q=site%3Aen.wikipedia.org+"+URLEncoder.encode(kiss,"utf-8"));
-				break;
-			case "bropages":
-				browseThat("http://bropages.org/"+kiss);
-				break;
-			case "da.wiki":
-				browseThat("https://duckduckgo.com/?q=site%3Ada.wikipedia.org+"+URLEncoder.encode(kiss,"utf-8"));
-				break;
-			case "thesaurus":
-				browseThat("https://www.thesaurus.com/browse/"+URLEncoder.encode(kiss,"utf-8"));
-				break;
-			default:
+	    case "switch editmode":
+	    	cyberkiss(input("Enter an extension"));
+	    	break;
+	    	//case "editmode "+(words.size > 2 ? words.get(2) : "25d4vdeuevt2l0"):
+	    	//	cyberkissTheWords(words.get(2));
+	    	//	break;
+		case "import":
+			doImport(kiss);
+			break;
+		case "api-help":
+			apiHelp(kiss);
+			break;
+		case "eval beanshell":
+			BeanShell.eval(view,BeanShell.getNameSpace(),"p("+kiss+");");
+			break;
+		case "beanshell source":
+			if (!foundStartupFunction(kiss))
+				statMes(funcName+" ?");
+			//else
+				//p(buffer.getName());
+			break;
+		case "java keyword":
+			url = javaKeywordUrl(kiss);
+			if (url.size() > 1)
+				if (url.size() == 2) 
+					browseThat(url.get(0));
+				else {
+					actionsDialogGUI(this,numSeqSplitLast(url));
+				}
+			else
+				statMes(kiss+" ?" );
+			break;
+		case "python keyword":
+			url = pythonWordUrl(kiss);
+			p("python url="+url);
+			if (url.size() > 1)
+				if (url.size() == 2) 
+					browseThat(url.get(0));
+				else {
+					actionsDialogGUI(this,numSeqSplitLast(url));
+				}
+			else
+				stamMes(kiss+" ?" );
+			break;
+		case "jquery api":
+			browseThat("https://api.jquery.com/"+kiss+"/");
+			break;
+		case "duckduckgo":
+			browseThat("https://duckduckgo.com/?q="+URLEncoder.encode(kiss,"utf-8"));
+			break;
+		case "php function":
+			browseThat("https://www.php.net/manual/en/function."+kiss.replace("_","-")+".php");
+			break;
+		case "css property":
+			browseThat("https://developer.mozilla.org/en-US/docs/Web/CSS/"+kiss);
+			break;
+		case "php class":
+			//browseThat("https://www.php.net/manual/en/class."+kiss.replace("_","-")+".php");
+			
+			browseThat("https://www.php.net/manual/en/class."+kiss.toLowerCase().replace("_","-")+".php"); 
+			break;
+		case "html tag":
+			browseThat("https://developer.mozilla.org/en-US/docs/Web/HTML/Element/"+kiss);
+			break;
+		case "php add keyword":
+			view.goToBuffer(jEdit.openFile(view,"/home/bvirk/.jedit/modes/php.xml"));
+			break;
+		case "findrute":
+			String[] words = kiss.trim().replaceAll(" {2,}"," ").replaceAll(","," ").split(" "); 
+			browseThat("https://www.google.com/maps/dir/"+words[0]+"+"+words[1]+","+words[2]+"/"+words[3]+"+"+words[4]+","+words[5]);
+			break;
+		case "findvej":
+			String[] words = (kiss.trim().replaceAll("  +"," ")+" ").split(" ",3); 
+			browseThat("https://www.google.com/maps/place/"+words[0]+"+"+words[1]+words[2]);
+			break;
+		case "phone":
+			browseThat("https://118.dk/search/go?what="+kiss);
+			break;
+		case "cvr":
+			browseThat("https://datacvr.virk.dk/data/visenhed?enhedstype=virksomhed&id="+kiss+"&soeg="+kiss+"&language=da");
+			break;
+		case "en-da":
+			browseThat("https://en.glosbe.com/en/da/"+URLEncoder.encode(kiss,"utf-8"));
+			break;
+		case "da-en":
+			browseThat("https://da.glosbe.com/da/en/"+URLEncoder.encode(kiss,"utf-8"));
+			break;
+		case "en.wiki":
+			browseThat("https://duckduckgo.com/?q=site%3Aen.wikipedia.org+"+URLEncoder.encode(kiss,"utf-8"));
+			break;
+		case "bropages":
+			browseThat("http://bropages.org/"+kiss);
+			break;
+		case "da.wiki":
+			browseThat("https://duckduckgo.com/?q=site%3Ada.wikipedia.org+"+URLEncoder.encode(kiss,"utf-8"));
+			break;
+		case "thesaurus":
+			browseThat("https://www.thesaurus.com/browse/"+URLEncoder.encode(kiss,"utf-8"));
+			break;
+		// rerequesters
+		case "css concepts":
+			List menuItems = new ArrayList (Arrays.asList(new String[]{
+				 "selectors"
+				,"box model"
+				,"pseudo classes"
+				,"css colors"
+			}));
+			presentSelection(menuItems, kiss);
+			break;
+		case "selectors":
+			browseThat("https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks");
+			break;
+		case "box model":
+			browseThat("https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/The_box_model");
+			break;
+		case "pseudo classes":
+			browseThat("https://developer.mozilla.org/en-US/docs/Learn/CSS/Building_blocks/Selectors/Pseudo-classes_and_pseudo-elements#reference_section");
+			break;
+		case "css colors":
+			browseThat("https://developer.mozilla.org/en-US/docs/Web/CSS/color_value");
+			break;
+		default:
 				browseThat(choice);
 		}
 	}
@@ -347,7 +381,5 @@ void apiHelp(String word) {
 		statMes(word+" ?");
 	}
 }
-
-cyberkiss();
 	
-	
+cyberkiss(null);

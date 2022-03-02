@@ -369,8 +369,8 @@ List matchesSysProps(String pattern) {
  * Example of use for php, ignoring true categorizing in Errors vs. Warnings.
  *
  * String[] subjects = new String[]{
- * 	"Fatal error: Uncaught Error: Call to undefined function bvirk\\commands\\trut() in /var/www/domain/imd/commands/Play.php:27\ndit\ndat\ndut"
- *    ,"Warning: include(notExistingFile): failed to open stream: No such file or directory in /var/www/domain/imd/commands/Play.php on line 29"};
+ * 	"Fatal error: Uncaught Error: Call to undefined function bvirk\\commands\\trut() in /var/www/ipa/domain/commands/Play.php:27\ndit\ndat\ndut"
+ *    ,"Warning: include(notExistingFile): failed to open stream: No such file or directory in /var/www/ipa/domain/commands/Play.php on line 29"};
  * String[] regexs= new String[]{
  * 	 "^(.+?(?=in\\s+/))in\\s+([^:]+):(\\d+).*"
  * 	,"^(.+?(?=in\\s+/))in\\s+(.+?(?=\\s+on\\s+line))[^\\d]+(\\d+).*"};

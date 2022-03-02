@@ -1,7 +1,7 @@
 cls(base32RndStr(14));
 
 //p(actionNames("[M].+"));
-//p(matchesjEditProps("gui.+"));
+//p(matchesjEditProps("ipa.+"));
 //p(matchesSysProps(".*tmp.*"));
 //p(mEval("angle=36;height=1.3;2*height*tan(pi*angle/2/180)"));
 //p(sourcedFunctions());
@@ -9,5 +9,9 @@ cls(base32RndStr(14));
 //p(basename());
 //p(basename(true));
 //p(dotExt());
+//p(0xfd22);
+//p(Integer.toHexString(8594));
 //view.splitVertically();view.unsplitCurrent();
+
+p(buffer.getPath());
 

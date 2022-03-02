@@ -58,10 +58,12 @@ void functionsDialog()
 		dialog.dispose();
 		if (e.getModifiers() == 16) {
 			tcp=textArea.getCaretPosition();
-			buffer.insert(tcp,fName+fArgsList);
+			statMes(e.getActionCommand().replaceAll("^interface ","")+fArgsList);
+			//buffer.insert(tcp,fName+fArgsList);
+			buffer.insert(tcp,fName+"()");
 			int fLen = fName.length();
 			textArea.setCaretPosition(tcp+fLen+1);
-			textArea.setSelection(new Selection.Range(tcp+fLen+1,tcp+fLen+fArgsList.length()-1));
+			//textArea.setSelection(new Selection.Range(tcp+fLen+1,tcp+fLen+fArgsList.length()-1));
 		} else
 			foundStartupFunction(fName.replaceAll("\\(.+",""));
 	}

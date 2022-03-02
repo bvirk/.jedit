@@ -17,9 +17,9 @@ void intializeProperties() {
 	for (String[] keysets : new String[][] {
 		 
 		 { // COMMON - index 0
-		 "imd.message={0}"
-		,"imd.title=imd input"
-		,"imd.serverurl=http://imd"
+		 "ipa.message={0}"
+		,"ipa.title=ipa input"
+		,"ipa.serverurl=http://ipa"
 		,"guiutilities.confirm.custom.message={0}"
 		,"guiutilities.confirm.message={0}"
 		,"guiutilities.confirm.title=Confirm choice"
